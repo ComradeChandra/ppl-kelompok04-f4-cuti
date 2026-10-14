@@ -1,0 +1,12 @@
+{
+  "employeeId": "0192f1a4-8d2e-7b31-a5c6-d7e8f9a0b1c2",
+  "year": 2026,
+  "eligible": false,
+  "eligibleFrom": "2027-02-01",
+  "entitlementDays": 0,
+  "usedDays": 0,
+  "remainingDays": 0,
+  "pendingDays": 0,
+  "availableDays": 0,
+  "expiresOn": "2026-12-31"
+}

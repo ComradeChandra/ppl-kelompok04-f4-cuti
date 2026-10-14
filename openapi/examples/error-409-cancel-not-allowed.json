@@ -1,0 +1,4 @@
+{
+  "code": "INVALID_STATE",
+  "message": "Pengajuan tidak dapat dibatalkan karena status sudah final atau tanggal mulai sudah lewat."
+}

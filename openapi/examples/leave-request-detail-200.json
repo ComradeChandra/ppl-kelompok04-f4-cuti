@@ -1,0 +1,28 @@
+{
+  "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+  "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d",
+  "employeeName": "Nadia Prameswari",
+  "leaveType": "ANNUAL",
+  "startDate": "2026-10-20",
+  "endDate": "2026-10-22",
+  "workingDays": 3,
+  "status": "APPROVED",
+  "createdAt": "2026-10-06T01:15:00Z",
+  "reason": "Acara keluarga",
+  "attachments": [],
+  "decisions": [
+    {
+      "stage": "COO",
+      "decision": "APPROVE",
+      "reason": null,
+      "decidedAt": "2026-10-07T02:30:00Z"
+    },
+    {
+      "stage": "CEO",
+      "decision": "APPROVE",
+      "reason": null,
+      "decidedAt": "2026-10-08T03:00:00Z"
+    }
+  ],
+  "cancelledAt": null
+}

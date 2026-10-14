@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+      "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-16",
+      "endDate": "2026-11-18",
+      "workingDays": 3,
+      "status": "PENDING_COO",
+      "createdAt": "2026-10-09T02:10:00Z"
+    }
+  ]
+}

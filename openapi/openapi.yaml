@@ -1,0 +1,1567 @@
+openapi: 3.0.3
+info:
+  title: API Layanan Cuti F-4 (Pengajuan dan Persetujuan Cuti)
+  version: 0.1.0
+  description: |
+    Kontrak API modul F-4 Pengajuan dan Persetujuan Cuti, ERP PT Anaheim Nimbus Universal
+    (Kelas F, Kelompok 4). Versi awal untuk tugas pertemuan 3; mengikuti Daftar Kontrak API v0.2.
+
+    Konvensi yang dipakai (materi pertemuan 2, menunggu lembar kesepakatan integrasi kelas):
+    - ID berupa string UUID v7 dari layanan pemilik: employeeId dari F-2, userId dari F-1,
+      leaveRequestId, approvalId, attachmentId, entryId, dan notificationId dari F-4.
+    - Tanggal cuti memakai format YYYY-MM-DD. Waktu kejadian memakai RFC 3339 UTC.
+    - Zona bisnis Asia/Jakarta dipakai untuk H-7 hari kerja, tanggal mulai (gugur otomatis),
+      dan saldo hangus 31 Desember.
+    - null berarti belum terjadi atau belum diisi, bukan nol.
+    - Semua kesalahan memakai bentuk { code, message } (usulan F-4, menunggu kesepakatan kelas).
+
+    Semua data pada contoh bersifat fiktif.
+  contact:
+    name: Kelompok 4 Kelas F (F-4)
+
+servers:
+  - url: http://127.0.0.1:4010
+    description: Mock lokal yang dijalankan dari berkas ini (Prism), untuk lingkungan uji.
+
+tags:
+  - name: Saldo
+    description: Saldo cuti tahunan dan riwayat saldo (internal UI F-4).
+  - name: Pengajuan
+    description: Pengajuan, detail, dan pembatalan cuti (internal UI F-4).
+  - name: Persetujuan
+    description: Keputusan COO dan CEO (internal UI F-4).
+  - name: Lampiran
+    description: Unggah dan buka lampiran cuti (internal UI F-4).
+  - name: Status cuti
+    description: Status cuti untuk konsumen F-3 (kehadiran) dan F-5 (payroll).
+  - name: Proses internal
+    description: Proses terjadwal F-4.
+  - name: Notifikasi
+    description: Notifikasi dalam aplikasi (internal UI F-4).
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/leave-balances/{employeeId}:
+    get:
+      tags: [Saldo]
+      operationId: getLeaveBalance
+      summary: API-K04-01 Melihat saldo cuti tahunan
+      description: |
+        Mengembalikan saldo cuti tahunan, saldo dapat diajukan, status berhak, dan tanggal hangus.
+        Fitur: FTR-K04-01, FTR-K04-05. Konsumen: UI F-4 (UI-K04-01, UI-K04-02, UI-K04-03).
+
+        Hak akses: EMPLOYEE hanya employeeId miliknya; COO dan CEO untuk pemohon yang pengajuannya
+        sedang diputus; HR untuk semua karyawan.
+
+        Karyawan yang belum berhak tetap mendapat 200 dengan eligible = false, eligibleFrom terisi,
+        dan nilai saldo 0.
+      parameters:
+        - $ref: '#/components/parameters/EmployeeIdPath'
+        - $ref: '#/components/parameters/YearQuery'
+      responses:
+        '200':
+          description: Saldo ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+              examples:
+                berhak-dengan-pengajuan-menunggu:
+                  $ref: '#/components/examples/leave-balance-200-eligible'
+                belum-berhak:
+                  $ref: '#/components/examples/leave-balance-200-not-eligible'
+        '400':
+          description: Parameter year tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                year-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/EmployeeNotFound'
+
+  /api/v1/leave-balances/{employeeId}/ledger:
+    get:
+      tags: [Saldo]
+      operationId: listBalanceLedger
+      summary: API-K04-09 Melihat riwayat saldo
+      description: |
+        Mengembalikan riwayat perubahan saldo (pemberian, pemakaian, pengembalian, hangus,
+        koreksi, impor) untuk tautan Lihat riwayat saldo. Fitur: FTR-K04-01.
+        Konsumen: UI F-4 (UI-K04-01).
+
+        Hak akses: EMPLOYEE hanya riwayat miliknya; HR untuk semua karyawan.
+        Baris diurutkan dari createdAt terbaru.
+      parameters:
+        - $ref: '#/components/parameters/EmployeeIdPath'
+        - $ref: '#/components/parameters/YearQuery'
+      responses:
+        '200':
+          description: Riwayat saldo; items boleh kosong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceLedger'
+              examples:
+                riwayat:
+                  $ref: '#/components/examples/balance-ledger-200'
+        '400':
+          description: Parameter year tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                year-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/EmployeeNotFound'
+
+  /api/v1/leave-requests:
+    get:
+      tags: [Pengajuan]
+      operationId: listLeaveRequests
+      summary: API-K04-02 Daftar pengajuan cuti
+      description: |
+        Mengembalikan daftar pengajuan milik pemanggil (scope=mine) atau antrean persetujuan
+        COO/CEO (scope=approval). Fitur: FTR-K04-01, FTR-K04-03.
+        Konsumen: UI F-4 (UI-K04-01, UI-K04-03).
+
+        Urutan: createdAt terbaru untuk scope=mine; startDate terdekat untuk scope=approval.
+        Versi awal belum memakai paging; daftar dibatasi oleh filter year.
+        employeeName dibaca dari API F-2 saat diminta dan tidak disimpan F-4.
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: mine (bawaan) untuk pengajuan milik pemanggil; approval untuk antrean yang menunggu keputusan pemanggil (hanya COO dan CEO).
+          schema:
+            type: string
+            enum: [mine, approval]
+            default: mine
+        - name: status
+          in: query
+          required: false
+          description: Salah satu nilai status cuti. Kosong berarti semua status.
+          schema:
+            $ref: '#/components/schemas/LeaveStatus'
+        - name: year
+          in: query
+          required: false
+          description: Tahun startDate. Bawaan tahun berjalan (Asia/Jakarta).
+          schema:
+            type: integer
+            minimum: 2000
+            maximum: 2100
+            example: 2026
+      responses:
+        '200':
+          description: Daftar pengajuan; items boleh kosong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequestList'
+              examples:
+                scope-mine:
+                  $ref: '#/components/examples/leave-requests-list-200-mine'
+                scope-approval:
+                  $ref: '#/components/examples/leave-requests-list-200-approval'
+        '400':
+          description: scope, status, atau year tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                parameter-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Pengajuan]
+      operationId: createLeaveRequest
+      summary: API-K04-03 Mengirim pengajuan cuti
+      description: |
+        Karyawan mengirim pengajuan cuti. Fitur: FTR-K04-02, FTR-K04-06.
+        Konsumen: UI F-4 (UI-K04-02).
+
+        employeeId diambil dari token, bukan dari body, sehingga karyawan tidak dapat mengajukan
+        atas nama orang lain. Tenaga ahli ditolak (Q-02).
+
+        Status awal: PENDING_COO; PENDING_CEO bila pengaju adalah COO; APPROVED untuk cuti haid
+        (Q-08) dan cuti CEO (Q-10).
+
+        Validasi per jenis cuti:
+        - ANNUAL: masa kerja minimal 12 bulan (Q-01), tanggal mulai minimal H-7 hari kerja (Q-05),
+          workingDays tidak melebihi saldo dapat diajukan, startDate dan endDate pada tahun yang
+          sama (asumsi Q-16).
+        - SICK: lampiran wajib; boleh diajukan susulan paling lambat 3 hari kerja (Q-07).
+          Pengajuan susulan tidak gugur otomatis (asumsi Q-17).
+        - MENSTRUAL: maksimal 2 hari per bulan, tanpa lampiran (Q-08).
+        - MATERNITY: lampiran wajib; durasi bawaan 3 bulan dan dapat dikonfigurasi (Q-09).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLeaveRequest'
+            examples:
+              cuti-tahunan:
+                $ref: '#/components/examples/leave-request-create-body-annual'
+              cuti-sakit:
+                $ref: '#/components/examples/leave-request-create-body-sick'
+      responses:
+        '201':
+          description: Pengajuan tersimpan. Kirim ulang dengan Idempotency-Key yang sama mengembalikan pengajuan yang sama tanpa membuat data baru.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequestCreated'
+              examples:
+                cuti-tahunan-menunggu-coo:
+                  $ref: '#/components/examples/leave-request-create-201'
+        '400':
+          description: Field wajib kosong atau format salah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                field-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Tanggal bentrok dengan pengajuan aktif milik karyawan yang sama.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tanggal-bentrok:
+                  $ref: '#/components/examples/error-409-date-overlap'
+        '422':
+          description: |
+            Pengajuan melanggar aturan cuti. Nilai code:
+            NOT_ELIGIBLE (masa kerja kurang dari 12 bulan), DEADLINE_H7,
+            INSUFFICIENT_BALANCE (hari kerja melebihi saldo dapat diajukan),
+            CROSS_YEAR_NOT_ALLOWED (cuti tahunan melewati 31 Desember), ATTACHMENT_REQUIRED,
+            SICK_BACKDATE_LIMIT (lebih dari 3 hari kerja), MENSTRUAL_LIMIT (lebih dari 2 hari per bulan).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                saldo-tidak-cukup:
+                  $ref: '#/components/examples/error-422-insufficient-balance'
+                belum-berhak:
+                  $ref: '#/components/examples/error-422-not-eligible'
+                tenggat-h7:
+                  $ref: '#/components/examples/error-422-deadline-h7'
+                lintas-tahun:
+                  $ref: '#/components/examples/error-422-cross-year'
+                lampiran-wajib:
+                  $ref: '#/components/examples/error-422-attachment-required'
+                susulan-lewat-batas:
+                  $ref: '#/components/examples/error-422-sick-backdate-limit'
+                batas-haid:
+                  $ref: '#/components/examples/error-422-menstrual-limit'
+
+  /api/v1/leave-requests/{leaveRequestId}:
+    get:
+      tags: [Pengajuan]
+      operationId: getLeaveRequest
+      summary: API-K04-02 Detail pengajuan cuti
+      description: |
+        Mengembalikan detail pengajuan beserta lampiran dan linimasa keputusan.
+        Fitur: FTR-K04-01, FTR-K04-03. Konsumen: UI F-4 (UI-K04-03, UI-K04-04).
+
+        Hak akses: EMPLOYEE hanya pengajuan miliknya; COO dan CEO untuk pengajuan pada tahapnya;
+        HR membaca detail semua pengajuan. storageUri lampiran tidak pernah dikirim.
+      parameters:
+        - $ref: '#/components/parameters/LeaveRequestIdPath'
+      responses:
+        '200':
+          description: Detail pengajuan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequestDetail'
+              examples:
+                disetujui:
+                  $ref: '#/components/examples/leave-request-detail-200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/LeaveRequestNotFound'
+
+  /api/v1/leave-requests/{leaveRequestId}/decisions:
+    post:
+      tags: [Persetujuan]
+      operationId: decideLeaveRequest
+      summary: API-K04-04 Menyetujui atau menolak pengajuan
+      description: |
+        COO memutus tahap PENDING_COO dan CEO memutus tahap PENDING_CEO. Fitur: FTR-K04-03.
+        Konsumen: UI F-4 (UI-K04-03).
+
+        APPROVE oleh COO mengubah status menjadi PENDING_CEO. APPROVE oleh CEO mengubah status
+        menjadi APPROVED dan memotong saldo cuti tahunan setelah sistem memeriksa ulang saldo
+        pemohon. REJECT wajib disertai alasan (Q-12). Tidak ada delegasi (Q-11).
+        Penyetuju tidak dapat memutus pengajuan miliknya sendiri.
+      parameters:
+        - $ref: '#/components/parameters/LeaveRequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionRequest'
+            examples:
+              setujui:
+                $ref: '#/components/examples/decision-body-approve'
+              tolak:
+                $ref: '#/components/examples/decision-body-reject'
+      responses:
+        '200':
+          description: Keputusan tersimpan dan status pengajuan berubah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResult'
+              examples:
+                disetujui-coo:
+                  $ref: '#/components/examples/decision-200-coo-approve'
+        '400':
+          description: Body tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                body-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/LeaveRequestNotFound'
+        '409':
+          description: Status tidak sesuai tahap, sudah diputus, CANCELLED, atau EXPIRED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sudah-diproses:
+                  $ref: '#/components/examples/error-409-invalid-state'
+        '422':
+          description: REASON_REQUIRED bila REJECT tanpa alasan; INSUFFICIENT_BALANCE bila saat CEO menyetujui saldo pemohon sudah tidak mencukupi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                alasan-wajib:
+                  $ref: '#/components/examples/error-422-reason-required'
+                saldo-pemohon-tidak-cukup:
+                  $ref: '#/components/examples/error-422-approver-insufficient-balance'
+
+  /api/v1/leave-requests/{leaveRequestId}/cancel:
+    post:
+      tags: [Pengajuan]
+      operationId: cancelLeaveRequest
+      summary: API-K04-05 Membatalkan pengajuan
+      description: |
+        Pengaju membatalkan pengajuan berstatus PENDING_COO, PENDING_CEO, atau APPROVED sebelum
+        tanggal mulai, tanpa persetujuan ulang (Q-12). Saldo cuti tahunan yang sudah dipotong
+        dikembalikan. Fitur: FTR-K04-03. Konsumen: UI F-4 (UI-K04-04).
+      parameters:
+        - $ref: '#/components/parameters/LeaveRequestIdPath'
+      responses:
+        '200':
+          description: Pengajuan dibatalkan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelResult'
+              examples:
+                dibatalkan:
+                  $ref: '#/components/examples/cancel-200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/LeaveRequestNotFound'
+        '409':
+          description: Status sudah final (REJECTED, CANCELLED, EXPIRED) atau tanggal mulai sudah lewat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tidak-dapat-dibatalkan:
+                  $ref: '#/components/examples/error-409-cancel-not-allowed'
+
+  /api/v1/leave-attachments:
+    post:
+      tags: [Lampiran]
+      operationId: uploadLeaveAttachment
+      summary: API-K04-06 Mengunggah lampiran
+      description: |
+        Karyawan mengunggah lampiran (surat dokter atau surat keterangan dokter/bidan) sebelum
+        mengirim pengajuan. attachmentId lalu dikirim pada API-K04-03. Fitur: FTR-K04-06.
+        Konsumen: UI F-4 (UI-K04-02). Format PDF, JPG, atau PNG dengan ukuran maksimal 2 MB (Q-13).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Berkas PDF, JPG, atau PNG, maksimal 2.097.152 byte.
+      responses:
+        '201':
+          description: Lampiran tersimpan dan belum ditautkan ke pengajuan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+              examples:
+                terunggah:
+                  $ref: '#/components/examples/attachment-upload-201'
+        '400':
+          description: Berkas tidak dikirim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                berkas-kosong:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          description: ATTACHMENT_TYPE_NOT_ALLOWED atau ATTACHMENT_TOO_LARGE.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                format-tidak-sesuai:
+                  $ref: '#/components/examples/error-422-attachment-type'
+                terlalu-besar:
+                  $ref: '#/components/examples/error-422-attachment-size'
+
+  /api/v1/leave-attachments/{attachmentId}:
+    get:
+      tags: [Lampiran]
+      operationId: getLeaveAttachment
+      summary: API-K04-06 Membuka lampiran
+      description: |
+        Mengunduh isi lampiran. Hanya pengaju, COO, CEO, dan HR yang boleh membuka (Q-13).
+        Setiap pembukaan dicatat di audit akses F-1. Fitur: FTR-K04-06.
+        Konsumen: UI F-4 (UI-K04-03, UI-K04-04).
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid7'
+          example: 0192f1e6-5a71-7c80-8d9e-1f2a3b4c5d6e
+      responses:
+        '200':
+          description: Isi berkas lampiran.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: attachmentId tidak dikenal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tidak-ditemukan:
+                  $ref: '#/components/examples/error-404-attachment'
+
+  /api/v1/leave-status:
+    get:
+      tags: [Status cuti]
+      operationId: getLeaveStatus
+      summary: API-K04-07 Status cuti per karyawan dan tanggal (untuk F-3 dan F-5)
+      description: |
+        Mengembalikan cuti yang sudah disetujui final (APPROVED) dan beririsan dengan rentang
+        from sampai to (inklusif). Fitur: FTR-K04-04. Konsumen: F-3 (kehadiran) dan F-5 (payroll).
+        Tanpa paging; items diurutkan menurut startDate dari yang paling awal.
+
+        Cuti PENDING_COO, PENDING_CEO, REJECTED, CANCELLED, dan EXPIRED tidak dikirim (Q-14).
+        Semua jenis cuti di modul ini dibayar (paid = true) pada MVP.
+
+        Hak akses: hanya akun layanan F-3 dan F-5. Alasan cuti, alasan penolakan, lampiran, dan
+        data persetujuan selain approvedAt tidak pernah dikirim.
+
+        Usulan F-4 yang menunggu konfirmasi F-5: rentang maksimal 31 hari per permintaan.
+      parameters:
+        - name: employeeId
+          in: query
+          required: true
+          description: employeeId kanonis dari F-2.
+          schema:
+            $ref: '#/components/schemas/Uuid7'
+          example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        - name: from
+          in: query
+          required: true
+          description: Tanggal awal rentang (inklusif), YYYY-MM-DD.
+          schema:
+            type: string
+            format: date
+          example: '2026-10-01'
+        - name: to
+          in: query
+          required: true
+          description: Tanggal akhir rentang (inklusif), YYYY-MM-DD, tidak boleh sebelum from.
+          schema:
+            type: string
+            format: date
+          example: '2026-10-31'
+      responses:
+        '200':
+          description: Daftar cuti APPROVED pada rentang; items boleh kosong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveStatusResponse'
+              examples:
+                ada-cuti:
+                  $ref: '#/components/examples/leave-status-200'
+                tidak-ada-cuti:
+                  $ref: '#/components/examples/leave-status-200-empty'
+        '400':
+          description: Format tanggal salah, to sebelum from, atau rentang melebihi batas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rentang-tidak-valid:
+                  $ref: '#/components/examples/error-400-date-range'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/EmployeeNotFound'
+
+  /api/v1/leave-balance-expiry-runs:
+    post:
+      tags: [Proses internal]
+      operationId: runLeaveBalanceExpiry
+      summary: API-K04-08 Menjalankan saldo hangus tahunan (internal)
+      description: |
+        Menghanguskan sisa saldo cuti tahunan pada 31 Desember tanpa carry over dan tanpa
+        diuangkan (Q-04), lalu memberi saldo tahun baru 12 hari bagi karyawan yang berhak (Q-03).
+        Fitur: FTR-K04-05. Konsumen: internal F-4 (penjadwal dan akun uji demo).
+
+        Untuk demo, proses dapat dipicu dengan tanggal simulasi. Proses untuk tahun yang sama
+        tidak memotong atau menambah saldo dua kali. Karyawan biasa ditolak (403).
+        Nama peran untuk penjadwal dan akun uji demo mengikuti F-1 (terbuka).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpiryRunRequest'
+            examples:
+              simulasi-2026:
+                $ref: '#/components/examples/expiry-run-body'
+      responses:
+        '200':
+          description: Proses selesai, atau proses tahun tersebut sudah pernah dijalankan (alreadyProcessed = true).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpiryRunResult'
+              examples:
+                selesai:
+                  $ref: '#/components/examples/expiry-run-200'
+        '400':
+          description: year atau simulatedDate tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                body-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/leave-notifications:
+    get:
+      tags: [Notifikasi]
+      operationId: listLeaveNotifications
+      summary: API-K04-10 Daftar notifikasi cuti
+      description: |
+        Mengembalikan notifikasi dalam aplikasi milik pemanggil, urut createdAt terbaru (Q-11).
+        Fitur: FTR-K04-03, FTR-K04-06. Konsumen: UI F-4 (semua peran).
+        Isi notifikasi tidak memuat alasan cuti atau lampiran; teks pesan disusun UI dari type.
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          description: true untuk menampilkan notifikasi yang belum dibaca saja.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Daftar notifikasi; items boleh kosong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+              examples:
+                notifikasi:
+                  $ref: '#/components/examples/notifications-200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/leave-notifications/{notificationId}/read:
+    post:
+      tags: [Notifikasi]
+      operationId: markLeaveNotificationRead
+      summary: API-K04-10 Menandai notifikasi sudah dibaca
+      description: Mengisi readAt. Bila sudah pernah dibaca, readAt tidak berubah. Hanya penerima notifikasi yang boleh menandai.
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid7'
+          example: 0192f208-7c93-7ea0-8fb0-3b4c5d6e7f80
+      responses:
+        '200':
+          description: Notifikasi ditandai sudah dibaca.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationRead'
+              examples:
+                dibaca:
+                  $ref: '#/components/examples/notification-read-200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: notificationId tidak dikenal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tidak-ditemukan:
+                  $ref: '#/components/examples/error-404-notification'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token Bearer yang diterbitkan F-1 (header Authorization: Bearer <token>). Setiap endpoint
+        memeriksa tanda tangan, iss, aud, dan exp, lalu peran dan kepemilikan data.
+        Peran yang dipakai (nama final mengikuti F-1): EMPLOYEE, COO, CEO, HR, serta akun layanan
+        F-3 dan F-5. Tenaga ahli tidak dapat memakai API cuti (Q-02).
+        401: token tidak ada, tidak sah, atau kedaluwarsa. 403: token sah tetapi peran atau
+        kepemilikan data tidak sesuai.
+
+  parameters:
+    EmployeeIdPath:
+      name: employeeId
+      in: path
+      required: true
+      description: employeeId kanonis dari F-2. Karyawan hanya boleh memakai employeeId miliknya.
+      schema:
+        $ref: '#/components/schemas/Uuid7'
+      example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+    LeaveRequestIdPath:
+      name: leaveRequestId
+      in: path
+      required: true
+      description: ID pengajuan yang diterbitkan F-4.
+      schema:
+        $ref: '#/components/schemas/Uuid7'
+      example: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+    YearQuery:
+      name: year
+      in: query
+      required: false
+      description: Tahun saldo. Bawaan tahun berjalan (Asia/Jakarta).
+      schema:
+        type: integer
+        minimum: 2000
+        maximum: 2100
+      example: 2026
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: UUID dari klien untuk mencegah pengajuan ganda saat kirim ulang setelah gangguan jaringan. Unik per employeeId.
+      schema:
+        type: string
+        format: uuid
+      example: 3f1c9a2e-5b7d-4e8f-a1b2-c3d4e5f60718
+
+  responses:
+    Unauthorized:
+      description: Token tidak ada, tidak sah, atau kedaluwarsa.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            token-tidak-sah:
+              $ref: '#/components/examples/error-401'
+    Forbidden:
+      description: Token sah tetapi peran atau kepemilikan data tidak sesuai.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            akses-ditolak:
+              $ref: '#/components/examples/error-403'
+    EmployeeNotFound:
+      description: employeeId tidak dikenal F-2.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            karyawan-tidak-ditemukan:
+              $ref: '#/components/examples/error-404-employee'
+    LeaveRequestNotFound:
+      description: leaveRequestId tidak dikenal.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            pengajuan-tidak-ditemukan:
+              $ref: '#/components/examples/error-404-leave-request'
+
+  schemas:
+    Uuid7:
+      type: string
+      format: uuid
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      description: String UUID v7 huruf kecil.
+      example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+
+    LeaveType:
+      type: string
+      enum: [ANNUAL, SICK, MENSTRUAL, MATERNITY]
+      description: ANNUAL (Tahunan), SICK (Sakit), MENSTRUAL (Haid), MATERNITY (Hamil/melahirkan).
+
+    LeaveStatus:
+      type: string
+      enum: [DRAFT, PENDING_COO, PENDING_CEO, APPROVED, REJECTED, CANCELLED, EXPIRED]
+      description: |
+        DRAFT sampai REJECTED dari materi pertemuan 2. CANCELLED (Dibatalkan) dan EXPIRED (Gugur)
+        adalah usulan F-4 yang menunggu lembar kesepakatan kelas. DRAFT tersedia sesuai enum kelas,
+        tetapi MVP langsung mengirim pengajuan.
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Kode kesalahan huruf kapital untuk dipetakan konsumen.
+          example: EMPLOYEE_NOT_FOUND
+        message:
+          type: string
+          description: Pesan berbahasa Indonesia yang dapat ditampilkan ke pengguna.
+          example: Karyawan tidak ditemukan.
+
+    LeaveBalance:
+      type: object
+      required: [employeeId, year, eligible, eligibleFrom, entitlementDays, usedDays, remainingDays, pendingDays, availableDays, expiresOn]
+      properties:
+        employeeId:
+          $ref: '#/components/schemas/Uuid7'
+        year:
+          type: integer
+          description: Tahun saldo.
+        eligible:
+          type: boolean
+          description: Sudah berhak cuti tahunan (masa kerja minimal 12 bulan, Q-01).
+        eligibleFrom:
+          type: string
+          format: date
+          nullable: true
+          description: Tanggal mulai berhak; null bila tanggal masuk belum tersedia dari F-2.
+        entitlementDays:
+          type: integer
+          minimum: 0
+          description: Jatah tahunan (12 hari, Q-03); 0 bila belum berhak.
+        usedDays:
+          type: integer
+          minimum: 0
+          description: Hari kerja yang sudah terpakai (cuti ANNUAL yang APPROVED).
+        remainingDays:
+          type: integer
+          minimum: 0
+          description: Sisa saldo.
+        pendingDays:
+          type: integer
+          minimum: 0
+          description: Hari kerja pengajuan ANNUAL yang masih PENDING_COO atau PENDING_CEO.
+        availableDays:
+          type: integer
+          minimum: 0
+          description: Saldo dapat diajukan = remainingDays dikurangi pendingDays; dihitung saat dibaca.
+        expiresOn:
+          type: string
+          format: date
+          description: Tanggal hangus (31 Desember tahun terkait, Q-04).
+
+    BalanceLedger:
+      type: object
+      required: [employeeId, year, items]
+      properties:
+        employeeId:
+          $ref: '#/components/schemas/Uuid7'
+        year:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BalanceLedgerEntry'
+
+    BalanceLedgerEntry:
+      type: object
+      required: [entryId, entryType, changeDays, leaveRequestId, reason, createdAt]
+      properties:
+        entryId:
+          $ref: '#/components/schemas/Uuid7'
+        entryType:
+          type: string
+          enum: [GRANT, USAGE, REFUND, EXPIRE, CORRECTION, IMPORT]
+          description: Pemberian, pemakaian, pengembalian, hangus, koreksi HR, atau impor saldo awal.
+        changeDays:
+          type: integer
+          description: Negatif berarti berkurang, positif berarti bertambah; tidak pernah 0.
+        leaveRequestId:
+          allOf:
+            - $ref: '#/components/schemas/Uuid7'
+          nullable: true
+          description: Diisi untuk USAGE dan REFUND; null untuk jenis lain.
+        reason:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Wajib untuk CORRECTION (Q-15); null untuk jenis lain.
+        createdAt:
+          type: string
+          format: date-time
+
+    LeaveRequestSummary:
+      type: object
+      required: [leaveRequestId, employeeId, employeeName, leaveType, startDate, endDate, workingDays, status, createdAt]
+      properties:
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        employeeId:
+          $ref: '#/components/schemas/Uuid7'
+        employeeName:
+          type: string
+          description: Nama pemohon dari API F-2; tidak disimpan F-4.
+        leaveType:
+          $ref: '#/components/schemas/LeaveType'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        workingDays:
+          type: integer
+          minimum: 1
+          description: Hari kerja di luar akhir pekan, hari libur, dan cuti bersama (kalender F-3).
+        status:
+          $ref: '#/components/schemas/LeaveStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    LeaveRequestList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaveRequestSummary'
+
+    AttachmentRef:
+      type: object
+      required: [attachmentId, fileName]
+      properties:
+        attachmentId:
+          $ref: '#/components/schemas/Uuid7'
+        fileName:
+          type: string
+
+    DecisionEntry:
+      type: object
+      required: [stage, decision, reason, decidedAt]
+      properties:
+        stage:
+          type: string
+          enum: [COO, CEO]
+        decision:
+          type: string
+          enum: [APPROVE, REJECT]
+        reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan; null bila disetujui.
+        decidedAt:
+          type: string
+          format: date-time
+
+    LeaveRequestDetail:
+      allOf:
+        - $ref: '#/components/schemas/LeaveRequestSummary'
+        - type: object
+          required: [reason, attachments, decisions, cancelledAt]
+          properties:
+            reason:
+              type: string
+              description: Alasan cuti dari pengaju.
+            attachments:
+              type: array
+              description: Daftar lampiran tanpa storageUri.
+              items:
+                $ref: '#/components/schemas/AttachmentRef'
+            decisions:
+              type: array
+              description: Linimasa keputusan (0 sampai 2 baris).
+              items:
+                $ref: '#/components/schemas/DecisionEntry'
+            cancelledAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: null bila tidak dibatalkan.
+
+    CreateLeaveRequest:
+      type: object
+      required: [leaveType, startDate, endDate, reason]
+      properties:
+        leaveType:
+          $ref: '#/components/schemas/LeaveType'
+        startDate:
+          type: string
+          format: date
+          description: Hari penuh saja (Q-06).
+        endDate:
+          type: string
+          format: date
+          description: Tidak boleh sebelum startDate. Untuk ANNUAL harus pada tahun yang sama dengan startDate (asumsi Q-16).
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        attachmentIds:
+          type: array
+          description: Wajib minimal satu untuk SICK dan MATERNITY; tidak dipakai untuk ANNUAL dan MENSTRUAL. ID dari API-K04-06.
+          items:
+            $ref: '#/components/schemas/Uuid7'
+
+    LeaveRequestCreated:
+      type: object
+      required: [leaveRequestId, employeeId, leaveType, startDate, endDate, workingDays, status, createdAt]
+      properties:
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        employeeId:
+          $ref: '#/components/schemas/Uuid7'
+        leaveType:
+          $ref: '#/components/schemas/LeaveType'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        workingDays:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [PENDING_COO, PENDING_CEO, APPROVED]
+          description: PENDING_COO; PENDING_CEO bila pengaju COO; APPROVED untuk cuti haid dan cuti CEO.
+        createdAt:
+          type: string
+          format: date-time
+
+    DecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVE, REJECT]
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Wajib bila REJECT; tampil ke pengaju (Q-12).
+
+    DecisionResult:
+      type: object
+      required: [leaveRequestId, status, stage, decidedBy, decidedAt, reason]
+      properties:
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        status:
+          type: string
+          enum: [PENDING_CEO, APPROVED, REJECTED]
+          description: Status baru setelah keputusan.
+        stage:
+          type: string
+          enum: [COO, CEO]
+          description: Tahap yang diputus.
+        decidedBy:
+          allOf:
+            - $ref: '#/components/schemas/Uuid7'
+          description: userId penyetuju dari token F-1.
+        decidedAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan; null bila disetujui.
+
+    CancelResult:
+      type: object
+      required: [leaveRequestId, status, cancelledAt]
+      properties:
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        status:
+          type: string
+          enum: [CANCELLED]
+        cancelledAt:
+          type: string
+          format: date-time
+
+    Attachment:
+      type: object
+      required: [attachmentId, fileName, fileType, sizeBytes, uploadedAt]
+      properties:
+        attachmentId:
+          $ref: '#/components/schemas/Uuid7'
+        fileName:
+          type: string
+          maxLength: 255
+        fileType:
+          type: string
+          enum: [application/pdf, image/jpeg, image/png]
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 2097152
+        uploadedAt:
+          type: string
+          format: date-time
+
+    LeaveStatusResponse:
+      type: object
+      required: [employeeId, items]
+      properties:
+        employeeId:
+          allOf:
+            - $ref: '#/components/schemas/Uuid7'
+          description: Karyawan yang diminta.
+        items:
+          type: array
+          description: Cuti APPROVED yang beririsan dengan rentang; boleh kosong.
+          items:
+            $ref: '#/components/schemas/LeaveStatusItem'
+
+    LeaveStatusItem:
+      type: object
+      required: [leaveRequestId, leaveType, startDate, endDate, workingDays, status, paid, approvedAt]
+      properties:
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        leaveType:
+          allOf:
+            - $ref: '#/components/schemas/LeaveType'
+          description: Perlu dikonfirmasi apakah F-3 dan F-5 membutuhkan jenis cuti rinci.
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        workingDays:
+          type: integer
+          minimum: 1
+          description: Hari kerja cuti (dihitung dengan kalender F-3).
+        status:
+          type: string
+          enum: [APPROVED]
+          description: Selalu APPROVED (Q-14).
+        paid:
+          type: boolean
+          description: Selalu true pada MVP karena semua jenis cuti dibayar (Q-14).
+        approvedAt:
+          type: string
+          format: date-time
+          description: Waktu keputusan final.
+
+    ExpiryRunRequest:
+      type: object
+      required: [year]
+      properties:
+        year:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+          description: Tahun saldo yang dihanguskan.
+        simulatedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Tanggal simulasi untuk demo; null atau tidak diisi berarti tanggal berjalan (Asia/Jakarta).
+
+    ExpiryRunResult:
+      type: object
+      required: [year, alreadyProcessed, processedEmployees, expiredDaysTotal, executedAt]
+      properties:
+        year:
+          type: integer
+        alreadyProcessed:
+          type: boolean
+          description: true bila proses tahun ini sudah pernah dijalankan; tidak ada perubahan saldo ganda.
+        processedEmployees:
+          type: integer
+          minimum: 0
+        expiredDaysTotal:
+          type: integer
+          minimum: 0
+          description: Jumlah hari yang hangus pada proses ini.
+        executedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      required: [notificationId, leaveRequestId, type, readAt, createdAt]
+      properties:
+        notificationId:
+          $ref: '#/components/schemas/Uuid7'
+        leaveRequestId:
+          $ref: '#/components/schemas/Uuid7'
+        type:
+          type: string
+          enum: [SUBMITTED, APPROVED, REJECTED, CANCELLED, EXPIRED, MENSTRUAL_NOTICE]
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: null bila belum dibaca.
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+
+    NotificationRead:
+      type: object
+      required: [notificationId, readAt]
+      properties:
+        notificationId:
+          $ref: '#/components/schemas/Uuid7'
+        readAt:
+          type: string
+          format: date-time
+
+  examples:
+    leave-balance-200-eligible:
+      summary: Karyawan berhak, ada pengajuan tahunan 3 hari yang menunggu
+      value:
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        year: 2026
+        eligible: true
+        eligibleFrom: '2025-03-01'
+        entitlementDays: 12
+        usedDays: 3
+        remainingDays: 9
+        pendingDays: 3
+        availableDays: 6
+        expiresOn: '2026-12-31'
+    leave-balance-200-not-eligible:
+      summary: Karyawan baru, masa kerja belum 12 bulan
+      value:
+        employeeId: 0192f1a4-8d2e-7b31-a5c6-d7e8f9a0b1c2
+        year: 2026
+        eligible: false
+        eligibleFrom: '2027-02-01'
+        entitlementDays: 0
+        usedDays: 0
+        remainingDays: 0
+        pendingDays: 0
+        availableDays: 0
+        expiresOn: '2026-12-31'
+    balance-ledger-200:
+      summary: Riwayat saldo 2026
+      value:
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        year: 2026
+        items:
+          - entryId: 0192f1f7-6b82-7d90-9eaf-2a3b4c5d6e7f
+            entryType: USAGE
+            changeDays: -3
+            leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+            reason: null
+            createdAt: '2026-10-08T03:00:00Z'
+          - entryId: 0192f1f6-1a2b-7c3d-8e4f-5a6b7c8d9e0f
+            entryType: GRANT
+            changeDays: 12
+            leaveRequestId: null
+            reason: null
+            createdAt: '2025-12-31T17:00:00Z'
+    leave-requests-list-200-mine:
+      summary: Pengajuan milik karyawan (scope=mine)
+      value:
+        items:
+          - leaveRequestId: 0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b
+            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeName: Nadia Prameswari
+            leaveType: ANNUAL
+            startDate: '2026-11-16'
+            endDate: '2026-11-18'
+            workingDays: 3
+            status: PENDING_COO
+            createdAt: '2026-10-09T02:10:00Z'
+          - leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeName: Nadia Prameswari
+            leaveType: ANNUAL
+            startDate: '2026-10-20'
+            endDate: '2026-10-22'
+            workingDays: 3
+            status: APPROVED
+            createdAt: '2026-10-06T01:15:00Z'
+    leave-requests-list-200-approval:
+      summary: Antrean persetujuan COO (scope=approval)
+      value:
+        items:
+          - leaveRequestId: 0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b
+            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeName: Nadia Prameswari
+            leaveType: ANNUAL
+            startDate: '2026-11-16'
+            endDate: '2026-11-18'
+            workingDays: 3
+            status: PENDING_COO
+            createdAt: '2026-10-09T02:10:00Z'
+    leave-request-detail-200:
+      summary: Detail pengajuan yang sudah disetujui COO dan CEO
+      value:
+        leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeName: Nadia Prameswari
+        leaveType: ANNUAL
+        startDate: '2026-10-20'
+        endDate: '2026-10-22'
+        workingDays: 3
+        status: APPROVED
+        createdAt: '2026-10-06T01:15:00Z'
+        reason: Acara keluarga
+        attachments: []
+        decisions:
+          - stage: COO
+            decision: APPROVE
+            reason: null
+            decidedAt: '2026-10-07T02:30:00Z'
+          - stage: CEO
+            decision: APPROVE
+            reason: null
+            decidedAt: '2026-10-08T03:00:00Z'
+        cancelledAt: null
+    leave-request-create-body-annual:
+      summary: Body cuti tahunan
+      value:
+        leaveType: ANNUAL
+        startDate: '2026-10-20'
+        endDate: '2026-10-22'
+        reason: Acara keluarga
+    leave-request-create-body-sick:
+      summary: Body cuti sakit dengan lampiran
+      value:
+        leaveType: SICK
+        startDate: '2026-10-05'
+        endDate: '2026-10-06'
+        reason: Demam, istirahat sesuai anjuran dokter
+        attachmentIds:
+          - 0192f1e6-5a71-7c80-8d9e-1f2a3b4c5d6e
+    leave-request-create-201:
+      summary: Cuti tahunan tersimpan, menunggu COO
+      value:
+        leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        leaveType: ANNUAL
+        startDate: '2026-10-20'
+        endDate: '2026-10-22'
+        workingDays: 3
+        status: PENDING_COO
+        createdAt: '2026-10-06T01:15:00Z'
+    decision-body-approve:
+      summary: Menyetujui
+      value:
+        decision: APPROVE
+    decision-body-reject:
+      summary: Menolak dengan alasan
+      value:
+        decision: REJECT
+        reason: Jadwal bentrok dengan audit internal pada tanggal tersebut.
+    decision-200-coo-approve:
+      summary: COO menyetujui tahap pertama
+      value:
+        leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+        status: PENDING_CEO
+        stage: COO
+        decidedBy: 0192f1a3-2b4c-7d50-9e6f-0a1b2c3d4e5f
+        decidedAt: '2026-10-07T02:30:00Z'
+        reason: null
+    cancel-200:
+      summary: Pengajuan dibatalkan sebelum tanggal mulai
+      value:
+        leaveRequestId: 0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b
+        status: CANCELLED
+        cancelledAt: '2026-10-10T04:00:00Z'
+    attachment-upload-201:
+      summary: Surat dokter terunggah
+      value:
+        attachmentId: 0192f1e6-5a71-7c80-8d9e-1f2a3b4c5d6e
+        fileName: surat_dokter.pdf
+        fileType: application/pdf
+        sizeBytes: 524288
+        uploadedAt: '2026-10-06T01:05:00Z'
+    leave-status-200:
+      summary: Cuti APPROVED pada Oktober 2026
+      value:
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        items:
+          - leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+            leaveType: ANNUAL
+            startDate: '2026-10-20'
+            endDate: '2026-10-22'
+            workingDays: 3
+            status: APPROVED
+            paid: true
+            approvedAt: '2026-10-08T03:00:00Z'
+    leave-status-200-empty:
+      summary: Tidak ada cuti APPROVED pada rentang
+      value:
+        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        items: []
+    expiry-run-body:
+      summary: Simulasi saldo hangus 2026 untuk demo
+      value:
+        year: 2026
+        simulatedDate: '2026-12-31'
+    expiry-run-200:
+      summary: Proses hangus 2026 selesai
+      value:
+        year: 2026
+        alreadyProcessed: false
+        processedEmployees: 5
+        expiredDaysTotal: 17
+        executedAt: '2026-10-12T03:00:00Z'
+    notifications-200:
+      summary: Notifikasi milik karyawan
+      value:
+        items:
+          - notificationId: 0192f208-7c93-7ea0-8fb0-3b4c5d6e7f80
+            leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
+            type: APPROVED
+            readAt: null
+            createdAt: '2026-10-08T03:00:05Z'
+    notification-read-200:
+      summary: Notifikasi ditandai dibaca
+      value:
+        notificationId: 0192f208-7c93-7ea0-8fb0-3b4c5d6e7f80
+        readAt: '2026-10-08T05:12:00Z'
+    error-400-validation:
+      summary: Input tidak valid
+      value:
+        code: VALIDATION_ERROR
+        message: Format tanggal harus YYYY-MM-DD.
+    error-400-date-range:
+      summary: Rentang tanggal tidak valid
+      value:
+        code: INVALID_DATE_RANGE
+        message: Tanggal to tidak boleh sebelum from.
+    error-401:
+      summary: Token tidak sah
+      value:
+        code: UNAUTHORIZED
+        message: Sesi berakhir, silakan login kembali.
+    error-403:
+      summary: Akses ditolak
+      value:
+        code: FORBIDDEN
+        message: Anda tidak memiliki akses ke data ini.
+    error-404-employee:
+      summary: employeeId tidak dikenal
+      value:
+        code: EMPLOYEE_NOT_FOUND
+        message: Karyawan tidak ditemukan.
+    error-404-leave-request:
+      summary: leaveRequestId tidak dikenal
+      value:
+        code: LEAVE_REQUEST_NOT_FOUND
+        message: Pengajuan cuti tidak ditemukan.
+    error-404-attachment:
+      summary: attachmentId tidak dikenal
+      value:
+        code: ATTACHMENT_NOT_FOUND
+        message: Lampiran tidak ditemukan.
+    error-404-notification:
+      summary: notificationId tidak dikenal
+      value:
+        code: NOTIFICATION_NOT_FOUND
+        message: Notifikasi tidak ditemukan.
+    error-409-date-overlap:
+      summary: Tanggal bentrok
+      value:
+        code: DATE_OVERLAP
+        message: Tanggal cuti bentrok dengan pengajuan lain yang masih aktif.
+    error-409-invalid-state:
+      summary: Pengajuan sudah diproses
+      value:
+        code: INVALID_STATE
+        message: Pengajuan ini sudah diproses. Muat ulang halaman.
+    error-409-cancel-not-allowed:
+      summary: Pengajuan tidak dapat dibatalkan
+      value:
+        code: INVALID_STATE
+        message: Pengajuan tidak dapat dibatalkan karena status sudah final atau tanggal mulai sudah lewat.
+    error-422-insufficient-balance:
+      summary: Melebihi saldo dapat diajukan
+      value:
+        code: INSUFFICIENT_BALANCE
+        message: Saldo dapat diajukan 2 hari, pengajuan 4 hari kerja.
+    error-422-not-eligible:
+      summary: Masa kerja belum 12 bulan
+      value:
+        code: NOT_ELIGIBLE
+        message: Anda berhak cuti tahunan mulai 2027-02-01 (12 bulan masa kerja).
+    error-422-deadline-h7:
+      summary: Kurang dari H-7 hari kerja
+      value:
+        code: DEADLINE_H7
+        message: Cuti tahunan diajukan paling lambat 7 hari kerja sebelum tanggal mulai.
+    error-422-cross-year:
+      summary: Melewati 31 Desember
+      value:
+        code: CROSS_YEAR_NOT_ALLOWED
+        message: Cuti tahunan tidak boleh melewati 31 Desember. Ajukan dalam dua pengajuan terpisah.
+    error-422-attachment-required:
+      summary: Lampiran wajib
+      value:
+        code: ATTACHMENT_REQUIRED
+        message: Surat dokter wajib dilampirkan.
+    error-422-sick-backdate-limit:
+      summary: Susulan melewati 3 hari kerja
+      value:
+        code: SICK_BACKDATE_LIMIT
+        message: Cuti sakit susulan diajukan paling lambat 3 hari kerja setelah kembali bekerja.
+    error-422-menstrual-limit:
+      summary: Melebihi 2 hari per bulan
+      value:
+        code: MENSTRUAL_LIMIT
+        message: Cuti haid maksimal 2 hari per bulan.
+    error-422-reason-required:
+      summary: Alasan penolakan kosong
+      value:
+        code: REASON_REQUIRED
+        message: Alasan penolakan wajib diisi.
+    error-422-approver-insufficient-balance:
+      summary: Saldo pemohon tidak cukup saat CEO menyetujui
+      value:
+        code: INSUFFICIENT_BALANCE
+        message: Saldo pemohon tidak mencukupi. Pengajuan tidak dapat disetujui.
+    error-422-attachment-type:
+      summary: Format berkas tidak diterima
+      value:
+        code: ATTACHMENT_TYPE_NOT_ALLOWED
+        message: Format harus PDF, JPG, atau PNG dengan ukuran maks. 2 MB.
+    error-422-attachment-size:
+      summary: Berkas lebih dari 2 MB
+      value:
+        code: ATTACHMENT_TOO_LARGE
+        message: Format harus PDF, JPG, atau PNG dengan ukuran maks. 2 MB.
