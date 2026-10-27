@@ -1,6 +1,6 @@
 {
   "name": "ppl-kelompok04-f4-cuti",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Layanan F-4 Pengajuan dan Persetujuan Cuti, ERP PT Anaheim Nimbus Universal (Kelas F, Kelompok 4)",
   "main": "src/server.js",
@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "build": "node scripts/check.js"
+    "build": "node scripts/check.js",
+    "demo": "node scripts/demo.js",
+    "uji:p5": "node scripts/uji-p5.js"
   },
   "license": "UNLICENSED"
 }
