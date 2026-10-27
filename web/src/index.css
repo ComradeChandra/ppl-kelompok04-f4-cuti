@@ -1,0 +1,97 @@
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+/* Token dari board Figma kelompok (frame "Draf Form ajukan cuti" dan "dialog konfirmasi"). */
+@theme {
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+
+  --color-canvas: #f0f2f5;
+  --color-field: #f8fafc;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-line-faint: #f1f5f9;
+
+  --color-ink: #1e293b;
+  --color-ink-strong: #0f172a;
+  --color-ink-soft: #334155;
+  --color-ink-dim: #475569;
+  --color-ink-muted: #64748b;
+  --color-ink-faint: #94a3b8;
+
+  --color-navy: #203348;
+  --color-navy-pressed: #1a2d42;
+  --color-nav-active: #edf2f7;
+  --color-focus: #3b82f6;
+
+  --color-danger: #b91c1c;
+  --color-danger-pressed: #991b1b;
+  --color-danger-soft: #fef2f2;
+  --color-required: #ef4444;
+  --color-warning-soft: #fff7e0;
+  --color-warning-line: #fde68a;
+  --color-warning-ink: #92400e;
+  --color-success-soft: #f0fdf4;
+  --color-success-line: #bbf7d0;
+  --color-success-ink: #15803d;
+
+  --spacing-control: 2.5rem;
+  --radius-card: 12px;
+  --shadow-card: 0 1px 1.5px rgb(0 0 0 / 0.02);
+  --shadow-modal: 0 20px 40px -12px rgb(15 23 42 / 0.25);
+  --shadow-popover: 0 8px 24px -6px rgb(15 23 42 / 0.18);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-sm text-ink antialiased;
+  }
+
+  /* Tailwind 4 mengembalikan kursor tombol ke default; seluruh tombol aktif memakai pointer. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: #cbd5e1;
+    color: #0f172a;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Firefox saja: Chrome yang membaca properti ini mengabaikan ::-webkit-scrollbar. */
+  @supports not selector(::-webkit-scrollbar) {
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+  }
+
+  /* Ikon kalender bawaan diganti ikon sendiri di DateField. */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+}
