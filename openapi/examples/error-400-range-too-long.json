@@ -1,0 +1,4 @@
+{
+  "code": "RANGE_TOO_LONG",
+  "message": "Rentang tanggal maksimal 31 hari, termasuk tanggal awal dan akhir."
+}

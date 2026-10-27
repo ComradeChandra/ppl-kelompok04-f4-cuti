@@ -1,0 +1,16 @@
+{
+  "employeeId": "EMP-003",
+  "items": [
+    {
+      "leaveRequestId": "0192f1b6-7a8b-7c93-9eaf-1a2b3c4d5e6f",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-10-28",
+      "endDate": "2026-11-05",
+      "workingDays": 7,
+      "workingDaysInRange": 3,
+      "status": "APPROVED",
+      "paid": true,
+      "approvedAt": "2026-10-16T03:00:00Z"
+    }
+  ]
+}

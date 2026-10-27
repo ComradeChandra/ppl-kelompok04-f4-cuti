@@ -4,6 +4,7 @@ const { getConfig } = require('./config');
 const { createApp } = require('./app');
 
 const config = getConfig();
-http.createServer(createApp(config.seedFile)).listen(config.port, () => {
+http.createServer(createApp(config.seedFile, { demoToday: config.demoToday })).listen(config.port, () => {
   console.log(`Layanan F-4 berjalan di http://localhost:${config.port}`);
+  if (config.demoToday) console.log(`Tanggal demo dikunci: ${config.demoToday}`);
 });

@@ -1,0 +1,402 @@
+UJI PERTEMUAN 5 F-4: OPERASI BUAT, LIHAT, UBAH DRAF DAN VALIDASI DASAR
+Tanggal demo (Asia/Jakarta): 2026-10-27 | Data: seed/seed.json | Kontrak: openapi/openapi.yaml v1.1.0
+Mock dependensi: Kelompok 1 (token uji), Kelompok 2 (referensi karyawan EMP-001), Kelompok 3 (hari libur)
+==============================================================================
+OPERASI BUAT, LIHAT, UBAH (objek yang sama)
+
+[B-01] Buat draf cuti tahunan 9-11 November 2026 (EMP-001)
+    POST /api/v1/leave-requests  (token: token-uji-karyawan)
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-09","endDate":"2026-11-11","reason":"Menghadiri pernikahan saudara","submit":false}
+    → HTTP 201 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-11",
+      "workingDays": 3,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z"
+    }
+
+[B-02] Lihat draf dengan leaveRequestId dari B-01
+    GET /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-11",
+      "workingDays": 3,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:00Z"
+    }
+
+[B-03] Ubah draf: tanggal akhir 12 November dan alasan baru
+    PATCH /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    body: {"endDate":"2026-11-12","reason":"Menghadiri pernikahan saudara di luar kota"}
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+
+[B-04] Lihat ulang draf dengan request baru
+    GET /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+
+==============================================================================
+VALIDASI DASAR
+
+[B-05] VAL-01 ditolak: draf kedua dengan tanggal yang sama
+    POST /api/v1/leave-requests  (token: token-uji-karyawan)
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-09","endDate":"2026-11-11","reason":"Menghadiri pernikahan saudara","submit":false}
+    → HTTP 409 (sesuai harapan)
+    {
+      "code": "DATE_OVERLAP",
+      "message": "Tanggal cuti bertumpuk dengan pengajuan lain milik Anda (termasuk draf). Pilih tanggal lain atau ubah pengajuan yang sudah ada."
+    }
+
+[B-05a] VAL-01 kondisi data: daftar pengajuan EMP-001 setelah penolakan
+    GET /api/v1/leave-requests?scope=mine  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": [
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+
+[B-06] VAL-02 ditolak: ubah draf dengan tanggal akhir 6 November (sebelum tanggal mulai)
+    PATCH /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    body: {"endDate":"2026-11-06"}
+    → HTTP 400 (sesuai harapan)
+    {
+      "code": "VALIDATION_ERROR",
+      "message": "Tanggal akhir tidak boleh sebelum tanggal mulai. Perbaiki tanggal akhir."
+    }
+
+[B-06a] VAL-02 kondisi data: draf setelah penolakan
+    GET /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+
+[B-07] VAL-03 ditolak: token karyawan EMP-999 (tidak ada di referensi karyawan) membuat draf
+    POST /api/v1/leave-requests  (token: token-uji-karyawan-3)
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-09","endDate":"2026-11-11","reason":"Menghadiri pernikahan saudara","submit":false}
+    → HTTP 404 (sesuai harapan)
+    {
+      "code": "EMPLOYEE_NOT_FOUND",
+      "message": "Karyawan tidak ditemukan di referensi karyawan. Hubungi HR untuk memeriksa data akun Anda."
+    }
+
+[B-07a] VAL-03 kondisi data: daftar pengajuan EMP-001 tidak berubah
+    GET /api/v1/leave-requests?scope=mine  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": [
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+
+[B-08] VAL-04 valid: pemilik mengubah alasan draf
+    PATCH /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    body: {"reason":"Menghadiri pernikahan saudara di Surabaya"}
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di Surabaya",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:03Z"
+    }
+
+[B-09] VAL-04 ditolak: karyawan lain (EMP-003) mengubah draf EMP-001
+    PATCH /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan-2)
+    body: {"reason":"Diubah orang lain"}
+    → HTTP 403 (sesuai harapan)
+    {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+
+[B-09b] VAL-04 ditolak: COO mengubah draf EMP-001
+    PATCH /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-coo)
+    body: {"reason":"Diubah COO"}
+    → HTTP 403 (sesuai harapan)
+    {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+
+[B-10] VAL-04 ditolak: pemilik mengubah pengajuan yang sudah PENDING_COO
+    PATCH /api/v1/leave-requests/0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b  (token: token-uji-karyawan)
+    body: {"reason":"Ubah setelah dikirim"}
+    → HTTP 409 (sesuai harapan)
+    {
+      "code": "INVALID_STATE",
+      "message": "Pengajuan yang sudah dikirim tidak dapat diubah."
+    }
+
+[B-10a] VAL-04 kondisi data: draf tetap berisi perubahan pemilik (B-08)
+    GET /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di Surabaya",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:03Z"
+    }
+
+[B-10b] VAL-04 kondisi data: pengajuan PENDING_COO tidak berubah
+    GET /api/v1/leave-requests/0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-16",
+      "endDate": "2026-11-18",
+      "workingDays": 3,
+      "status": "PENDING_COO",
+      "createdAt": "2026-10-09T02:10:00Z",
+      "reason": "Liburan keluarga",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-09T02:10:00Z"
+    }
+
+[B-11] VAL-05 valid: draf cuti tahunan 23-24 November (lebih dari H-7 hari kerja)
+    POST /api/v1/leave-requests  (token: token-uji-karyawan)
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 201 (sesuai harapan)
+    {
+      "leaveRequestId": "01a17b16-0c88-79d8-81b4-18f22d46c3ed",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:04Z"
+    }
+
+[B-12] VAL-05 ditolak: draf cuti tahunan mulai 2 November (kurang dari H-7 hari kerja)
+    POST /api/v1/leave-requests  (token: token-uji-karyawan)
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-02","endDate":"2026-11-03","reason":"Urusan keluarga","submit":false}
+    → HTTP 422 (sesuai harapan)
+    {
+      "code": "DEADLINE_H7",
+      "message": "Cuti tahunan diajukan paling lambat 7 hari kerja sebelum tanggal mulai."
+    }
+
+[B-12a] VAL-05 kondisi data: daftar pengajuan EMP-001
+    GET /api/v1/leave-requests?scope=mine  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": [
+        {
+          "leaveRequestId": "01a17b16-0c88-79d8-81b4-18f22d46c3ed",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-23",
+          "endDate": "2026-11-24",
+          "workingDays": 2,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:04Z"
+        },
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+
+[B-12b] VAL-05 kondisi data: saldo EMP-001 tidak berubah oleh draf maupun penolakan
+    GET /api/v1/leave-balances/EMP-001  (token: token-uji-karyawan)
+    → HTTP 200 (sesuai harapan)
+    {
+      "employeeId": "EMP-001",
+      "year": 2026,
+      "eligible": true,
+      "eligibleFrom": "2025-03-01",
+      "entitlementDays": 12,
+      "usedDays": 3,
+      "remainingDays": 9,
+      "pendingDays": 3,
+      "availableDays": 6,
+      "expiresOn": "2026-12-31"
+    }
+
+[B-13] Mock Kelompok 1: request tanpa token ditolak
+    GET /api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2  (token: -)
+    → HTTP 401 (sesuai harapan)
+    {
+      "code": "UNAUTHORIZED",
+      "message": "Sesi berakhir, silakan login kembali."
+    }
+

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
-const required = ['openapi/openapi.yaml', 'seed/seed.json', '.env.example', 'README.md'];
+const required = ['openapi/openapi.yaml', 'seed/seed.json', '.env.example', 'README.md', 'CHANGELOG.md'];
 for (const f of required) {
   if (!fs.existsSync(path.join(root, f))) throw new Error(`Berkas wajib tidak ada: ${f}`);
 }

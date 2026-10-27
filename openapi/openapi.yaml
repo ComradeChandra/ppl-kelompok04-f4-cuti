@@ -1,14 +1,17 @@
 openapi: 3.0.3
 info:
   title: API Layanan Cuti F-4 (Pengajuan dan Persetujuan Cuti)
-  version: 0.1.0
+  version: 1.1.0
   description: |
     Kontrak API modul F-4 Pengajuan dan Persetujuan Cuti, ERP PT Anaheim Nimbus Universal
-    (Kelas F, Kelompok 4). Versi awal untuk tugas pertemuan 3; mengikuti Daftar Kontrak API v0.2.
+    (Kelas F, Kelompok 4). Versi 1.0.0 dibekukan untuk asesmen tengah semester; versi 1.1.0 menambah
+    draf pengajuan (pertemuan 5) dan mengikuti format employeeId Kelompok 2 (contoh EMP-001).
+    Riwayat perubahan dicatat di CHANGELOG.md.
 
     Konvensi yang dipakai (materi pertemuan 2, menunggu lembar kesepakatan integrasi kelas):
-    - ID berupa string UUID v7 dari layanan pemilik: employeeId dari F-2, userId dari F-1,
-      leaveRequestId, approvalId, attachmentId, entryId, dan notificationId dari F-4.
+    - employeeId diterbitkan Kelompok 2 dengan format seed bersama kelas (contoh EMP-001).
+      ID yang diterbitkan F-4 (leaveRequestId, approvalId, attachmentId, entryId, notificationId)
+      dan userId F-1 berupa string UUID v7.
     - Tanggal cuti memakai format YYYY-MM-DD. Waktu kejadian memakai RFC 3339 UTC.
     - Zona bisnis Asia/Jakarta dipakai untuk H-7 hari kerja, tanggal mulai (gugur otomatis),
       dan saldo hangus 31 Desember.
@@ -20,6 +23,8 @@ info:
     name: Kelompok 4 Kelas F (F-4)
 
 servers:
+  - url: http://localhost:3000
+    description: Layanan F-4 lokal (npm start) dengan data seed fiktif.
   - url: http://127.0.0.1:4010
     description: Mock lokal yang dijalankan dari berkas ini (Prism), untuk lingkungan uji.
 
@@ -227,6 +232,8 @@ paths:
                 $ref: '#/components/examples/leave-request-create-body-annual'
               cuti-sakit:
                 $ref: '#/components/examples/leave-request-create-body-sick'
+              simpan-draf:
+                $ref: '#/components/examples/leave-request-create-body-draft'
       responses:
         '201':
           description: Pengajuan tersimpan. Kirim ulang dengan Idempotency-Key yang sama mengembalikan pengajuan yang sama tanpa membuat data baru.
@@ -237,6 +244,8 @@ paths:
               examples:
                 cuti-tahunan-menunggu-coo:
                   $ref: '#/components/examples/leave-request-create-201'
+                draf:
+                  $ref: '#/components/examples/leave-request-create-201-draft'
         '400':
           description: Field wajib kosong atau format salah.
           content:
@@ -250,8 +259,17 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          description: employeeId dari token tidak ada di referensi karyawan Kelompok 2.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                karyawan-tidak-dikenal:
+                  $ref: '#/components/examples/error-404-requester'
         '409':
-          description: Tanggal bentrok dengan pengajuan aktif milik karyawan yang sama.
+          description: Tanggal bertumpuk dengan pengajuan lain milik karyawan yang sama (DRAFT, PENDING_COO, PENDING_CEO, atau APPROVED).
           content:
             application/json:
               schema:
@@ -309,12 +327,130 @@ paths:
               examples:
                 disetujui:
                   $ref: '#/components/examples/leave-request-detail-200'
+        '400':
+          description: leaveRequestId bukan UUID v7.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                id-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/LeaveRequestNotFound'
+
+    patch:
+      tags: [Pengajuan]
+      operationId: updateLeaveRequestDraft
+      summary: API-K04-11 Mengubah draf pengajuan cuti
+      description: |
+        Pemilik mengubah draf (status DRAFT) sebelum dikirim. Fitur: FTR-K04-02. Konsumen: UI F-4 (UI-K04-02).
+        Field yang boleh diubah: leaveType, startDate, endDate, reason, attachmentIds. Seluruh aturan
+        validasi dijalankan ulang; bila ditolak, tidak ada field yang berubah. leaveRequestId tetap sama.
+      parameters:
+        - $ref: '#/components/parameters/LeaveRequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDraftRequest'
+            examples:
+              ubah-tanggal-dan-alasan:
+                $ref: '#/components/examples/draft-patch-body'
+      responses:
+        '200':
+          description: Draf tersimpan dengan perubahan baru.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequestDetail'
+              examples:
+                draf-diubah:
+                  $ref: '#/components/examples/draft-patch-200'
+        '400':
+          description: Field tidak boleh diubah, format salah, atau tanggal akhir sebelum tanggal mulai.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                urutan-tanggal:
+                  $ref: '#/components/examples/error-400-date-order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/LeaveRequestNotFound'
+        '409':
+          description: Pengajuan sudah dikirim (INVALID_STATE) atau tanggal bertumpuk (DATE_OVERLAP).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sudah-dikirim:
+                  $ref: '#/components/examples/error-409-not-draft'
+        '422':
+          description: Melanggar aturan cuti (kode sama dengan API-K04-03).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tenggat-h7:
+                  $ref: '#/components/examples/error-422-deadline-h7'
+
+  /api/v1/leave-requests/{leaveRequestId}/submit:
+    post:
+      tags: [Pengajuan]
+      operationId: submitLeaveRequestDraft
+      summary: API-K04-12 Mengirim draf pengajuan cuti
+      description: |
+        Pemilik mengirim draf. Aturan validasi dijalankan ulang pada tanggal pengiriman, lalu status
+        berubah menjadi PENDING_COO (PENDING_CEO bila pengaju COO; APPROVED untuk cuti haid dan cuti CEO).
+        Fitur: FTR-K04-02. Konsumen: UI F-4 (UI-K04-02, UI-K04-04).
+      parameters:
+        - $ref: '#/components/parameters/LeaveRequestIdPath'
+      responses:
+        '200':
+          description: Draf terkirim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequestCreated'
+              examples:
+                terkirim:
+                  $ref: '#/components/examples/leave-request-create-201'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/LeaveRequestNotFound'
+        '409':
+          description: Pengajuan bukan DRAFT atau tanggal bertumpuk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sudah-dikirim:
+                  $ref: '#/components/examples/error-409-invalid-state'
+        '422':
+          description: Melanggar aturan cuti pada saat dikirim (kode sama dengan API-K04-03).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tenggat-h7:
+                  $ref: '#/components/examples/error-422-deadline-h7'
 
   /api/v1/leave-requests/{leaveRequestId}/decisions:
     post:
@@ -394,7 +530,7 @@ paths:
       operationId: cancelLeaveRequest
       summary: API-K04-05 Membatalkan pengajuan
       description: |
-        Pengaju membatalkan pengajuan berstatus PENDING_COO, PENDING_CEO, atau APPROVED sebelum
+        Pengaju membatalkan pengajuan berstatus DRAFT, PENDING_COO, PENDING_CEO, atau APPROVED sebelum
         tanggal mulai, tanpa persetujuan ulang (Q-12). Saldo cuti tahunan yang sudah dipotong
         dikembalikan. Fitur: FTR-K04-03. Konsumen: UI F-4 (UI-K04-04).
       parameters:
@@ -409,6 +545,15 @@ paths:
               examples:
                 dibatalkan:
                   $ref: '#/components/examples/cancel-200'
+        '400':
+          description: leaveRequestId bukan UUID v7.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                id-tidak-valid:
+                  $ref: '#/components/examples/error-400-validation'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -543,15 +688,17 @@ paths:
         Hak akses: hanya akun layanan F-3 dan F-5. Alasan cuti, alasan penolakan, lampiran, dan
         data persetujuan selain approvedAt tidak pernah dikirim.
 
-        Usulan F-4 yang menunggu konfirmasi F-5: rentang maksimal 31 hari per permintaan.
+        Rentang maksimal 31 hari per permintaan, termasuk tanggal awal dan akhir (dikonfirmasi F-5).
+        workingDays adalah total hari kerja seluruh pengajuan; workingDaysInRange hanya hari kerja
+        yang berada di dalam rentang from sampai to, dipakai F-5 untuk cuti lintas bulan.
       parameters:
         - name: employeeId
           in: query
           required: true
           description: employeeId kanonis dari F-2.
           schema:
-            $ref: '#/components/schemas/Uuid7'
-          example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            $ref: '#/components/schemas/ExternalId'
+          example: EMP-001
         - name: from
           in: query
           required: true
@@ -578,17 +725,28 @@ paths:
               examples:
                 ada-cuti:
                   $ref: '#/components/examples/leave-status-200'
+                lintas-bulan:
+                  $ref: '#/components/examples/leave-status-200-cross-month'
                 tidak-ada-cuti:
                   $ref: '#/components/examples/leave-status-200-empty'
         '400':
-          description: Format tanggal salah, to sebelum from, atau rentang melebihi batas.
+          description: |
+            Parameter wajib kosong (VALIDATION_ERROR), format employeeId tidak valid (INVALID_EMPLOYEE_ID),
+            format tanggal salah (VALIDATION_ERROR), to sebelum from (INVALID_DATE_RANGE), atau rentang
+            lebih dari 31 hari (RANGE_TOO_LONG).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                rentang-tidak-valid:
+                parameter-kosong:
+                  $ref: '#/components/examples/error-400-missing-param'
+                uuid-salah:
+                  $ref: '#/components/examples/error-400-invalid-employee-id'
+                rentang-terbalik:
                   $ref: '#/components/examples/error-400-date-range'
+                rentang-terlalu-panjang:
+                  $ref: '#/components/examples/error-400-range-too-long'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -730,8 +888,8 @@ components:
       required: true
       description: employeeId kanonis dari F-2. Karyawan hanya boleh memakai employeeId miliknya.
       schema:
-        $ref: '#/components/schemas/Uuid7'
-      example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        $ref: '#/components/schemas/ExternalId'
+      example: EMP-001
     LeaveRequestIdPath:
       name: leaveRequestId
       in: path
@@ -804,7 +962,13 @@ components:
       format: uuid
       pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
       description: String UUID v7 huruf kecil.
-      example: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+      example: EMP-001
+
+    ExternalId:
+      type: string
+      pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,63}$'
+      description: ID referensi dari layanan pemilik (employeeId dari Kelompok 2), huruf, angka, dan tanda hubung, maks. 64 karakter.
+      example: EMP-001
 
     LeaveType:
       type: string
@@ -837,7 +1001,7 @@ components:
       required: [employeeId, year, eligible, eligibleFrom, entitlementDays, usedDays, remainingDays, pendingDays, availableDays, expiresOn]
       properties:
         employeeId:
-          $ref: '#/components/schemas/Uuid7'
+          $ref: '#/components/schemas/ExternalId'
         year:
           type: integer
           description: Tahun saldo.
@@ -879,7 +1043,7 @@ components:
       required: [employeeId, year, items]
       properties:
         employeeId:
-          $ref: '#/components/schemas/Uuid7'
+          $ref: '#/components/schemas/ExternalId'
         year:
           type: integer
         items:
@@ -921,7 +1085,7 @@ components:
         leaveRequestId:
           $ref: '#/components/schemas/Uuid7'
         employeeId:
-          $ref: '#/components/schemas/Uuid7'
+          $ref: '#/components/schemas/ExternalId'
         employeeName:
           type: string
           description: Nama pemohon dari API F-2; tidak disimpan F-4.
@@ -983,7 +1147,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/LeaveRequestSummary'
         - type: object
-          required: [reason, attachments, decisions, cancelledAt]
+          required: [reason, attachments, decisions, cancelledAt, updatedAt]
           properties:
             reason:
               type: string
@@ -1003,6 +1167,10 @@ components:
               format: date-time
               nullable: true
               description: null bila tidak dibatalkan.
+            updatedAt:
+              type: string
+              format: date-time
+              description: Waktu perubahan terakhir; berubah setiap kali draf diubah.
 
     CreateLeaveRequest:
       type: object
@@ -1027,6 +1195,33 @@ components:
           description: Wajib minimal satu untuk SICK dan MATERNITY; tidak dipakai untuk ANNUAL dan MENSTRUAL. ID dari API-K04-06.
           items:
             $ref: '#/components/schemas/Uuid7'
+        submit:
+          type: boolean
+          default: true
+          description: true (bawaan) langsung mengirim pengajuan; false menyimpan sebagai DRAFT. Aturan validasi tetap dijalankan pada draf.
+
+    UpdateDraftRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Field draf yang boleh diubah. Field lain ditolak 400.
+      properties:
+        leaveType:
+          $ref: '#/components/schemas/LeaveType'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        attachmentIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid7'
 
     LeaveRequestCreated:
       type: object
@@ -1035,7 +1230,7 @@ components:
         leaveRequestId:
           $ref: '#/components/schemas/Uuid7'
         employeeId:
-          $ref: '#/components/schemas/Uuid7'
+          $ref: '#/components/schemas/ExternalId'
         leaveType:
           $ref: '#/components/schemas/LeaveType'
         startDate:
@@ -1049,8 +1244,8 @@ components:
           minimum: 1
         status:
           type: string
-          enum: [PENDING_COO, PENDING_CEO, APPROVED]
-          description: PENDING_COO; PENDING_CEO bila pengaju COO; APPROVED untuk cuti haid dan cuti CEO.
+          enum: [DRAFT, PENDING_COO, PENDING_CEO, APPROVED]
+          description: DRAFT bila submit false; PENDING_COO; PENDING_CEO bila pengaju COO; APPROVED untuk cuti haid dan cuti CEO.
         createdAt:
           type: string
           format: date-time
@@ -1133,7 +1328,7 @@ components:
       properties:
         employeeId:
           allOf:
-            - $ref: '#/components/schemas/Uuid7'
+            - $ref: '#/components/schemas/ExternalId'
           description: Karyawan yang diminta.
         items:
           type: array
@@ -1143,14 +1338,14 @@ components:
 
     LeaveStatusItem:
       type: object
-      required: [leaveRequestId, leaveType, startDate, endDate, workingDays, status, paid, approvedAt]
+      required: [leaveRequestId, leaveType, startDate, endDate, workingDays, workingDaysInRange, status, paid, approvedAt]
       properties:
         leaveRequestId:
           $ref: '#/components/schemas/Uuid7'
         leaveType:
           allOf:
             - $ref: '#/components/schemas/LeaveType'
-          description: Perlu dikonfirmasi apakah F-3 dan F-5 membutuhkan jenis cuti rinci.
+          description: Jenis cuti untuk pencatatan; F-5 cukup memakai paid untuk perhitungan dasar.
         startDate:
           type: string
           format: date
@@ -1160,7 +1355,11 @@ components:
         workingDays:
           type: integer
           minimum: 1
-          description: Hari kerja cuti (dihitung dengan kalender F-3).
+          description: Total hari kerja seluruh pengajuan (dihitung dengan kalender F-3).
+        workingDaysInRange:
+          type: integer
+          minimum: 0
+          description: Hari kerja cuti yang berada di dalam rentang from sampai to (masukan review F-5).
         status:
           type: string
           enum: [APPROVED]
@@ -1251,7 +1450,7 @@ components:
     leave-balance-200-eligible:
       summary: Karyawan berhak, ada pengajuan tahunan 3 hari yang menunggu
       value:
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         year: 2026
         eligible: true
         eligibleFrom: '2025-03-01'
@@ -1264,7 +1463,7 @@ components:
     leave-balance-200-not-eligible:
       summary: Karyawan baru, masa kerja belum 12 bulan
       value:
-        employeeId: 0192f1a4-8d2e-7b31-a5c6-d7e8f9a0b1c2
+        employeeId: EMP-002
         year: 2026
         eligible: false
         eligibleFrom: '2027-02-01'
@@ -1277,7 +1476,7 @@ components:
     balance-ledger-200:
       summary: Riwayat saldo 2026
       value:
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         year: 2026
         items:
           - entryId: 0192f1f7-6b82-7d90-9eaf-2a3b4c5d6e7f
@@ -1297,7 +1496,7 @@ components:
       value:
         items:
           - leaveRequestId: 0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b
-            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeId: EMP-001
             employeeName: Nadia Prameswari
             leaveType: ANNUAL
             startDate: '2026-11-16'
@@ -1306,7 +1505,7 @@ components:
             status: PENDING_COO
             createdAt: '2026-10-09T02:10:00Z'
           - leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
-            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeId: EMP-001
             employeeName: Nadia Prameswari
             leaveType: ANNUAL
             startDate: '2026-10-20'
@@ -1319,7 +1518,7 @@ components:
       value:
         items:
           - leaveRequestId: 0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b
-            employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+            employeeId: EMP-001
             employeeName: Nadia Prameswari
             leaveType: ANNUAL
             startDate: '2026-11-16'
@@ -1331,7 +1530,7 @@ components:
       summary: Detail pengajuan yang sudah disetujui COO dan CEO
       value:
         leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         employeeName: Nadia Prameswari
         leaveType: ANNUAL
         startDate: '2026-10-20'
@@ -1351,6 +1550,7 @@ components:
             reason: null
             decidedAt: '2026-10-08T03:00:00Z'
         cancelledAt: null
+        updatedAt: '2026-10-08T03:00:00Z'
     leave-request-create-body-annual:
       summary: Body cuti tahunan
       value:
@@ -1371,13 +1571,69 @@ components:
       summary: Cuti tahunan tersimpan, menunggu COO
       value:
         leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         leaveType: ANNUAL
         startDate: '2026-10-20'
         endDate: '2026-10-22'
         workingDays: 3
         status: PENDING_COO
         createdAt: '2026-10-06T01:15:00Z'
+    leave-request-create-body-draft:
+      summary: Simpan sebagai draf
+      value:
+        leaveType: ANNUAL
+        startDate: '2026-11-09'
+        endDate: '2026-11-11'
+        reason: Menghadiri pernikahan saudara
+        submit: false
+    leave-request-create-201-draft:
+      summary: Draf tersimpan
+      value:
+        leaveRequestId: 01a17b15-fce8-7cb1-a719-92dc50d84fe5
+        employeeId: EMP-001
+        leaveType: ANNUAL
+        startDate: '2026-11-09'
+        endDate: '2026-11-11'
+        workingDays: 3
+        status: DRAFT
+        createdAt: '2026-10-27T02:00:00Z'
+    draft-patch-body:
+      summary: Ubah tanggal akhir dan alasan
+      value:
+        endDate: '2026-11-12'
+        reason: Menghadiri pernikahan saudara di luar kota
+    draft-patch-200:
+      summary: Draf setelah diubah
+      value:
+        leaveRequestId: 01a17b15-fce8-7cb1-a719-92dc50d84fe5
+        employeeId: EMP-001
+        employeeName: Nadia Prameswari
+        leaveType: ANNUAL
+        startDate: '2026-11-09'
+        endDate: '2026-11-12'
+        workingDays: 4
+        status: DRAFT
+        createdAt: '2026-10-27T02:00:00Z'
+        reason: Menghadiri pernikahan saudara di luar kota
+        attachments: []
+        decisions: []
+        cancelledAt: null
+        updatedAt: '2026-10-27T02:00:02Z'
+    error-400-date-order:
+      summary: Tanggal akhir sebelum tanggal mulai
+      value:
+        code: VALIDATION_ERROR
+        message: Tanggal akhir tidak boleh sebelum tanggal mulai. Perbaiki tanggal akhir.
+    error-409-not-draft:
+      summary: Pengajuan sudah dikirim
+      value:
+        code: INVALID_STATE
+        message: Pengajuan yang sudah dikirim tidak dapat diubah.
+    error-404-requester:
+      summary: Karyawan pemilik token tidak dikenal
+      value:
+        code: EMPLOYEE_NOT_FOUND
+        message: Karyawan tidak ditemukan di referensi karyawan. Hubungi HR untuk memeriksa data akun Anda.
     decision-body-approve:
       summary: Menyetujui
       value:
@@ -1413,20 +1669,35 @@ components:
     leave-status-200:
       summary: Cuti APPROVED pada Oktober 2026
       value:
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         items:
           - leaveRequestId: 0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b
             leaveType: ANNUAL
             startDate: '2026-10-20'
             endDate: '2026-10-22'
             workingDays: 3
+            workingDaysInRange: 3
             status: APPROVED
             paid: true
             approvedAt: '2026-10-08T03:00:00Z'
+    leave-status-200-cross-month:
+      summary: Cuti 28 Oktober sampai 5 November, diminta data Oktober
+      value:
+        employeeId: EMP-003
+        items:
+          - leaveRequestId: 0192f1b6-7a8b-7c93-9eaf-1a2b3c4d5e6f
+            leaveType: ANNUAL
+            startDate: '2026-10-28'
+            endDate: '2026-11-05'
+            workingDays: 7
+            workingDaysInRange: 3
+            status: APPROVED
+            paid: true
+            approvedAt: '2026-10-16T03:00:00Z'
     leave-status-200-empty:
       summary: Tidak ada cuti APPROVED pada rentang
       value:
-        employeeId: 0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d
+        employeeId: EMP-001
         items: []
     expiry-run-body:
       summary: Simulasi saldo hangus 2026 untuk demo
@@ -1460,6 +1731,21 @@ components:
       value:
         code: VALIDATION_ERROR
         message: Format tanggal harus YYYY-MM-DD.
+    error-400-missing-param:
+      summary: Parameter wajib kosong
+      value:
+        code: VALIDATION_ERROR
+        message: Parameter employeeId, from, dan to wajib diisi.
+    error-400-invalid-employee-id:
+      summary: Format employeeId tidak valid
+      value:
+        code: INVALID_EMPLOYEE_ID
+        message: employeeId tidak valid. Gunakan ID dari referensi karyawan Kelompok 2, contoh EMP-001.
+    error-400-range-too-long:
+      summary: Rentang lebih dari 31 hari
+      value:
+        code: RANGE_TOO_LONG
+        message: Rentang tanggal maksimal 31 hari, termasuk tanggal awal dan akhir.
     error-400-date-range:
       summary: Rentang tanggal tidak valid
       value:
@@ -1499,7 +1785,7 @@ components:
       summary: Tanggal bentrok
       value:
         code: DATE_OVERLAP
-        message: Tanggal cuti bentrok dengan pengajuan lain yang masih aktif.
+        message: Tanggal cuti bertumpuk dengan pengajuan lain milik Anda (termasuk draf). Pilih tanggal lain atau ubah pengajuan yang sudah ada.
     error-409-invalid-state:
       summary: Pengajuan sudah diproses
       value:

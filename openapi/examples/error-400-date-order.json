@@ -1,0 +1,4 @@
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Tanggal akhir tidak boleh sebelum tanggal mulai. Perbaiki tanggal akhir."
+}

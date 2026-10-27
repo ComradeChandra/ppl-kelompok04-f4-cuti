@@ -1,0 +1,4 @@
+{
+  "code": "INVALID_EMPLOYEE_ID",
+  "message": "employeeId tidak valid. Gunakan ID dari referensi karyawan Kelompok 2, contoh EMP-001."
+}

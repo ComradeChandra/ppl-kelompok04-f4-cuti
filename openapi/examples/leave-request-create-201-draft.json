@@ -1,0 +1,10 @@
+{
+  "leaveRequestId": "01a17b15-fce8-7cb1-a719-92dc50d84fe5",
+  "employeeId": "EMP-001",
+  "leaveType": "ANNUAL",
+  "startDate": "2026-11-09",
+  "endDate": "2026-11-11",
+  "workingDays": 3,
+  "status": "DRAFT",
+  "createdAt": "2026-10-27T02:00:00Z"
+}

@@ -6,7 +6,7 @@ const path = require('node:path');
 function loadEnv(file = path.join(__dirname, '..', '.env')) {
   if (!fs.existsSync(file)) return;
   for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
     if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
   }
 }
@@ -16,6 +16,7 @@ function getConfig() {
   return {
     port: Number(process.env.PORT || 3000),
     seedFile: path.resolve(__dirname, '..', process.env.SEED_FILE || 'seed/seed.json'),
+    demoToday: process.env.DEMO_TODAY || null,
   };
 }
 

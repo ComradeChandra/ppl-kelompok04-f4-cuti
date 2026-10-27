@@ -1,4 +1,4 @@
 {
   "code": "DATE_OVERLAP",
-  "message": "Tanggal cuti bentrok dengan pengajuan lain yang masih aktif."
+  "message": "Tanggal cuti bertumpuk dengan pengajuan lain milik Anda (termasuk draf). Pilih tanggal lain atau ubah pengajuan yang sudah ada."
 }

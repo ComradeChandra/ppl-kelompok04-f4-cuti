@@ -1,0 +1,4 @@
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Parameter employeeId, from, dan to wajib diisi."
+}

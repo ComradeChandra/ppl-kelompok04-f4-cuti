@@ -1,0 +1,426 @@
+[
+  {
+    "no": "B-01",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 201,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-11",
+      "workingDays": 3,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z"
+    }
+  },
+  {
+    "no": "B-02",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-11",
+      "workingDays": 3,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:00Z"
+    }
+  },
+  {
+    "no": "B-03",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+  },
+  {
+    "no": "B-04",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+  },
+  {
+    "no": "B-05",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 409,
+    "body": {
+      "code": "DATE_OVERLAP",
+      "message": "Tanggal cuti bertumpuk dengan pengajuan lain milik Anda (termasuk draf). Pilih tanggal lain atau ubah pengajuan yang sudah ada."
+    }
+  },
+  {
+    "no": "B-05a",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=mine",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+  },
+  {
+    "no": "B-06",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 400,
+    "body": {
+      "code": "VALIDATION_ERROR",
+      "message": "Tanggal akhir tidak boleh sebelum tanggal mulai. Perbaiki tanggal akhir."
+    }
+  },
+  {
+    "no": "B-06a",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di luar kota",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:02Z"
+    }
+  },
+  {
+    "no": "B-07",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 404,
+    "body": {
+      "code": "EMPLOYEE_NOT_FOUND",
+      "message": "Karyawan tidak ditemukan di referensi karyawan. Hubungi HR untuk memeriksa data akun Anda."
+    }
+  },
+  {
+    "no": "B-07a",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=mine",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+  },
+  {
+    "no": "B-08",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di Surabaya",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:03Z"
+    }
+  },
+  {
+    "no": "B-09",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 403,
+    "body": {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+  },
+  {
+    "no": "B-09b",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 403,
+    "body": {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+  },
+  {
+    "no": "B-10",
+    "method": "PATCH",
+    "url": "/api/v1/leave-requests/0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+    "status": 409,
+    "body": {
+      "code": "INVALID_STATE",
+      "message": "Pengajuan yang sudah dikirim tidak dapat diubah."
+    }
+  },
+  {
+    "no": "B-10a",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-12",
+      "workingDays": 4,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:00Z",
+      "reason": "Menghadiri pernikahan saudara di Surabaya",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-27T02:00:03Z"
+    }
+  },
+  {
+    "no": "B-10b",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+      "employeeId": "EMP-001",
+      "employeeName": "Nadia Prameswari",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-16",
+      "endDate": "2026-11-18",
+      "workingDays": 3,
+      "status": "PENDING_COO",
+      "createdAt": "2026-10-09T02:10:00Z",
+      "reason": "Liburan keluarga",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-10-09T02:10:00Z"
+    }
+  },
+  {
+    "no": "B-11",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 201,
+    "body": {
+      "leaveRequestId": "01a17b16-0c88-79d8-81b4-18f22d46c3ed",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-10-27T02:00:04Z"
+    }
+  },
+  {
+    "no": "B-12",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 422,
+    "body": {
+      "code": "DEADLINE_H7",
+      "message": "Cuti tahunan diajukan paling lambat 7 hari kerja sebelum tanggal mulai."
+    }
+  },
+  {
+    "no": "B-12a",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=mine",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "leaveRequestId": "01a17b16-0c88-79d8-81b4-18f22d46c3ed",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-23",
+          "endDate": "2026-11-24",
+          "workingDays": 2,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:04Z"
+        },
+        {
+          "leaveRequestId": "01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-12",
+          "workingDays": 4,
+          "status": "DRAFT",
+          "createdAt": "2026-10-27T02:00:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": "Nadia Prameswari",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+  },
+  {
+    "no": "B-12b",
+    "method": "GET",
+    "url": "/api/v1/leave-balances/EMP-001",
+    "status": 200,
+    "body": {
+      "employeeId": "EMP-001",
+      "year": 2026,
+      "eligible": true,
+      "eligibleFrom": "2025-03-01",
+      "entitlementDays": 12,
+      "usedDays": 3,
+      "remainingDays": 9,
+      "pendingDays": 3,
+      "availableDays": 6,
+      "expiresOn": "2026-12-31"
+    }
+  },
+  {
+    "no": "B-13",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a17b15-fce8-7d0c-9f60-d7243f237fd2",
+    "status": 401,
+    "body": {
+      "code": "UNAUTHORIZED",
+      "message": "Sesi berakhir, silakan login kembali."
+    }
+  }
+]

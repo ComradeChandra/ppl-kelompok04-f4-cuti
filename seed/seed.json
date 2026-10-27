@@ -1,24 +1,291 @@
 {
-  "_catatan": "Data fiktif untuk lingkungan uji F-4. Token di bawah hanya untuk uji lokal dan mock, bukan token F-1 asli.",
+  "_catatan": "Data fiktif untuk lingkungan uji F-4. employeeId mengikuti seed bersama kelas (EMP-001, materi pertemuan 5). Token hanya untuk uji lokal dan mock F-1. Data karyawan adalah mock F-2; hari libur adalah mock F-3.",
   "testTokens": {
-    "token-uji-f3": { "role": "SERVICE_F3", "userId": "0192f1a9-0a1b-7c2d-8e3f-4a5b6c7d8e9f" },
-    "token-uji-f5": { "role": "SERVICE_F5", "userId": "0192f1a9-1b2c-7d3e-9f4a-5b6c7d8e9f0a" },
-    "token-uji-karyawan": { "role": "EMPLOYEE", "userId": "0192f1a8-9f0a-7b1c-8d2e-3f4a5b6c7d8e", "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d" },
-    "token-uji-coo": { "role": "COO", "userId": "0192f1a3-2b4c-7d50-9e6f-0a1b2c3d4e5f" },
-    "token-uji-ceo": { "role": "CEO", "userId": "0192f1a3-3c5d-7e61-8f7a-1b2c3d4e5f6a" }
+    "token-uji-karyawan": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-9f0a-7b1c-8d2e-3f4a5b6c7d8e",
+      "employeeId": "EMP-001"
+    },
+    "token-uji-karyawan-2": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-b12c-7d3e-8f4a-5b6c7d8e9f0a",
+      "employeeId": "EMP-003"
+    },
+    "token-uji-karyawan-3": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-d34e-7f5a-8b6c-7d8e9f0a1b2c",
+      "employeeId": "EMP-999"
+    },
+    "token-uji-karyawan-baru": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-a01b-7c2d-9e3f-4a5b6c7d8e9f",
+      "employeeId": "EMP-002"
+    },
+    "token-uji-karyawan-sinta": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-b12c-7d3e-8f4a-5b6c7d8e9f0a",
+      "employeeId": "EMP-003"
+    },
+    "token-uji-tenaga-ahli": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-c23d-7e4f-9a5b-6c7d8e9f0a1b",
+      "employeeId": "EMP-004"
+    },
+    "token-uji-coo": {
+      "role": "COO",
+      "userId": "0192f1a3-2b4c-7d50-9e6f-0a1b2c3d4e5f",
+      "employeeId": "EMP-005"
+    },
+    "token-uji-ceo": {
+      "role": "CEO",
+      "userId": "0192f1a3-3c5d-7e61-8f7a-1b2c3d4e5f6a",
+      "employeeId": "EMP-006"
+    },
+    "token-uji-hr": {
+      "role": "HR",
+      "userId": "0192f1a3-4d6e-7f72-9a8b-2c3d4e5f6a7b",
+      "employeeId": "EMP-007"
+    },
+    "token-uji-f3": {
+      "role": "SERVICE_F3",
+      "userId": "0192f1a9-0a1b-7c2d-8e3f-4a5b6c7d8e9f"
+    },
+    "token-uji-f5": {
+      "role": "SERVICE_F5",
+      "userId": "0192f1a9-1b2c-7d3e-9f4a-5b6c7d8e9f0a"
+    }
   },
   "employees": [
-    { "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d", "displayName": "Nadia Prameswari", "hireDate": "2024-03-01", "employmentType": "EMPLOYEE" },
-    { "employeeId": "0192f1a4-8d2e-7b31-a5c6-d7e8f9a0b1c2", "displayName": "Raka Wiratama", "hireDate": "2026-02-01", "employmentType": "EMPLOYEE" },
-    { "employeeId": "0192f1a5-9e3f-7c42-b6d7-e8f9a0b1c2d3", "displayName": "Sinta Maharani", "hireDate": "2023-07-17", "employmentType": "EMPLOYEE" },
-    { "employeeId": "0192f1a6-0f4a-7d53-87e8-f9a0b1c2d3e4", "displayName": "Bima Saputra", "hireDate": "2022-11-07", "employmentType": "EMPLOYEE" },
-    { "employeeId": "0192f1a7-1a5b-7e64-98f9-a0b1c2d3e4f5", "displayName": "Laras Anindita", "hireDate": "2025-05-12", "employmentType": "EXPERT" }
+    {
+      "employeeId": "EMP-001",
+      "displayName": "Nadia Prameswari",
+      "hireDate": "2024-03-01",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-002",
+      "displayName": "Raka Wiratama",
+      "hireDate": "2026-02-01",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-003",
+      "displayName": "Sinta Maharani",
+      "hireDate": "2023-07-17",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-004",
+      "displayName": "Laras Anindita",
+      "hireDate": "2025-05-12",
+      "employmentType": "EXPERT",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-005",
+      "displayName": "Bima Saputra (COO)",
+      "hireDate": "2022-11-07",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-006",
+      "displayName": "Maya Lestari (CEO)",
+      "hireDate": "2021-01-04",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    },
+    {
+      "employeeId": "EMP-007",
+      "displayName": "Dewi Kartika (HR)",
+      "hireDate": "2022-06-13",
+      "employmentType": "EMPLOYEE",
+      "active": true
+    }
+  ],
+  "holidays": [
+    {
+      "date": "2026-12-25",
+      "name": "Hari Raya Natal (contoh mock F-3)"
+    }
+  ],
+  "policy": {
+    "ANNUAL_ENTITLEMENT_DAYS": 12,
+    "ANNUAL_MIN_SERVICE_MONTHS": 12,
+    "ANNUAL_MIN_NOTICE_WORKDAYS": 7,
+    "SICK_BACKDATE_MAX_WORKDAYS": 3,
+    "MENSTRUAL_MAX_DAYS_PER_MONTH": 2,
+    "MAX_STATUS_RANGE_DAYS": 31
+  },
+  "balances": [
+    {
+      "balanceId": "0192f1c4-3e5f-7a60-8b7c-9d0e1f2a3b4c",
+      "employeeId": "EMP-001",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 3,
+      "remainingDays": 9
+    },
+    {
+      "balanceId": "0192f1c4-4f6a-7b71-9c8d-0e1f2a3b4c5d",
+      "employeeId": "EMP-003",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12
+    },
+    {
+      "balanceId": "0192f1c4-5a7b-7c82-8d9e-1f2a3b4c5d6e",
+      "employeeId": "EMP-005",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12
+    },
+    {
+      "balanceId": "0192f1c4-6b8c-7d93-9e0f-2a3b4c5d6e7f",
+      "employeeId": "EMP-006",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12
+    },
+    {
+      "balanceId": "0192f1c4-7c9d-7ea4-8f1a-3b4c5d6e7f80",
+      "employeeId": "EMP-007",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12
+    }
+  ],
+  "ledger": [
+    {
+      "entryId": "0192f1f6-1a2b-7c3d-8e4f-5a6b7c8d9e0f",
+      "employeeId": "EMP-001",
+      "year": 2026,
+      "leaveRequestId": null,
+      "entryType": "GRANT",
+      "changeDays": 12,
+      "reason": null,
+      "actorUserId": null,
+      "createdAt": "2025-12-31T17:00:00Z"
+    },
+    {
+      "entryId": "0192f1f7-6b82-7d90-9eaf-2a3b4c5d6e7f",
+      "employeeId": "EMP-001",
+      "year": 2026,
+      "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+      "entryType": "USAGE",
+      "changeDays": -3,
+      "reason": null,
+      "actorUserId": null,
+      "createdAt": "2026-10-08T03:00:00Z"
+    }
   ],
   "leaveRequests": [
-    { "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b", "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d", "leaveType": "ANNUAL", "startDate": "2026-10-20", "endDate": "2026-10-22", "workingDays": 3, "status": "APPROVED", "approvedAt": "2026-10-08T03:00:00Z" },
-    { "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b", "employeeId": "0192f1a2-7c3e-7a10-9b2d-4e5f6a7b8c9d", "leaveType": "ANNUAL", "startDate": "2026-11-16", "endDate": "2026-11-18", "workingDays": 3, "status": "PENDING_COO", "approvedAt": null },
-    { "leaveRequestId": "0192f1b3-4d5e-7f60-8b7c-8d9e0f1a2b3c", "employeeId": "0192f1a5-9e3f-7c42-b6d7-e8f9a0b1c2d3", "leaveType": "SICK", "startDate": "2026-10-05", "endDate": "2026-10-06", "workingDays": 2, "status": "APPROVED", "approvedAt": "2026-10-07T04:10:00Z" },
-    { "leaveRequestId": "0192f1b4-5e6f-7a71-9c8d-9e0f1a2b3c4d", "employeeId": "0192f1a5-9e3f-7c42-b6d7-e8f9a0b1c2d3", "leaveType": "MENSTRUAL", "startDate": "2026-10-12", "endDate": "2026-10-12", "workingDays": 1, "status": "APPROVED", "approvedAt": "2026-10-12T00:30:00Z" },
-    { "leaveRequestId": "0192f1b5-6f7a-7b82-8d9e-0f1a2b3c4d5e", "employeeId": "0192f1a6-0f4a-7d53-87e8-f9a0b1c2d3e4", "leaveType": "ANNUAL", "startDate": "2026-10-26", "endDate": "2026-10-27", "workingDays": 2, "status": "REJECTED", "approvedAt": null }
+    {
+      "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-10-20",
+      "endDate": "2026-10-22",
+      "workingDays": 3,
+      "reason": "Acara keluarga",
+      "attachmentIds": [],
+      "status": "APPROVED",
+      "idempotencyKey": null,
+      "createdAt": "2026-10-06T01:15:00Z",
+      "updatedAt": "2026-10-08T03:00:00Z",
+      "cancelledAt": null,
+      "decisions": [
+        {
+          "approvalId": "0192f1d5-4f60-7b70-9c8d-0e1f2a3b4c5d",
+          "stage": "COO",
+          "decision": "APPROVE",
+          "approverUserId": "0192f1a3-2b4c-7d50-9e6f-0a1b2c3d4e5f",
+          "reason": null,
+          "decidedAt": "2026-10-07T02:30:00Z"
+        },
+        {
+          "approvalId": "0192f1d5-5a71-7c80-8d9e-1f2a3b4c5d6e",
+          "stage": "CEO",
+          "decision": "APPROVE",
+          "approverUserId": "0192f1a3-3c5d-7e61-8f7a-1b2c3d4e5f6a",
+          "reason": null,
+          "decidedAt": "2026-10-08T03:00:00Z"
+        }
+      ]
+    },
+    {
+      "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+      "employeeId": "EMP-001",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-16",
+      "endDate": "2026-11-18",
+      "workingDays": 3,
+      "reason": "Liburan keluarga",
+      "attachmentIds": [],
+      "status": "PENDING_COO",
+      "idempotencyKey": null,
+      "createdAt": "2026-10-09T02:10:00Z",
+      "updatedAt": "2026-10-09T02:10:00Z",
+      "cancelledAt": null,
+      "decisions": []
+    },
+    {
+      "leaveRequestId": "0192f1b3-4d5e-7f60-8b7c-8d9e0f1a2b3c",
+      "employeeId": "EMP-003",
+      "leaveType": "SICK",
+      "startDate": "2026-10-05",
+      "endDate": "2026-10-06",
+      "workingDays": 2,
+      "reason": "Demam",
+      "attachmentIds": [
+        "0192f1e6-5a71-7c80-8d9e-1f2a3b4c5d6e"
+      ],
+      "status": "APPROVED",
+      "idempotencyKey": null,
+      "createdAt": "2026-10-07T01:00:00Z",
+      "updatedAt": "2026-10-07T04:10:00Z",
+      "cancelledAt": null,
+      "decisions": [
+        {
+          "approvalId": "0192f1d5-6b82-7d91-9eaf-2a3b4c5d6e7f",
+          "stage": "COO",
+          "decision": "APPROVE",
+          "approverUserId": "0192f1a3-2b4c-7d50-9e6f-0a1b2c3d4e5f",
+          "reason": null,
+          "decidedAt": "2026-10-07T02:00:00Z"
+        },
+        {
+          "approvalId": "0192f1d5-7c93-7ea2-8fb0-3b4c5d6e7f80",
+          "stage": "CEO",
+          "decision": "APPROVE",
+          "approverUserId": "0192f1a3-3c5d-7e61-8f7a-1b2c3d4e5f6a",
+          "reason": null,
+          "decidedAt": "2026-10-07T04:10:00Z"
+        }
+      ]
+    },
+    {
+      "leaveRequestId": "0192f1b4-5e6f-7a71-9c8d-9e0f1a2b3c4d",
+      "employeeId": "EMP-003",
+      "leaveType": "MENSTRUAL",
+      "startDate": "2026-10-12",
+      "endDate": "2026-10-12",
+      "workingDays": 1,
+      "reason": "Cuti haid",
+      "attachmentIds": [],
+      "status": "APPROVED",
+      "idempotencyKey": null,
+      "createdAt": "2026-10-12T00:30:00Z",
+      "updatedAt": "2026-10-12T00:30:00Z",
+      "cancelledAt": null,
+      "decisions": []
+    }
   ]
 }
