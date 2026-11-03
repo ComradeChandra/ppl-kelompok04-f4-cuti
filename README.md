@@ -3,23 +3,23 @@
 Repositori layanan F-4 Pengajuan dan Persetujuan Cuti untuk ERP PT Anaheim Nimbus Universal
 (Proyek Perangkat Lunak, Kelas F, Kelompok 4).
 
-Alur utama yang berjalan: **ajukan → validasi → keputusan COO/CEO → status**. Dependensi F-1 (token dan
-peran), F-2 (data karyawan), dan F-3 (hari libur) memakai mock dari data seed sampai API kelompok
-pemilik tersedia.
+Alur utama yang berjalan: **ajukan → validasi → keputusan COO/CEO → status**. Data karyawan dapat dibaca dari API
+Kelompok 2 (lihat bagian integrasi) atau mock seed; token F-1 dan hari libur F-3 masih memakai mock seed.
 
 ## Isi repositori
 
 | Path | Isi |
 |---|---|
-| `openapi/openapi.yaml` | Kontrak OpenAPI 3.0.3 versi 1.1.0 (1.0.0 dibekukan untuk asesmen tengah semester; perubahan di `CHANGELOG.md`). |
+| `openapi/openapi.yaml` | Kontrak OpenAPI 3.0.3 versi 1.2.0 (1.0.0 dibekukan untuk asesmen tengah semester; perubahan di `CHANGELOG.md`). |
 | `openapi/examples/` | Contoh respons JSON fiktif yang sama dengan contoh di `openapi.yaml`. |
 | `CHANGELOG.md` | Riwayat perubahan kontrak dan alasannya. |
 | `src/` | Kode layanan Node.js tanpa dependensi tambahan. |
 | `seed/seed.json` | Data fiktif: karyawan (mock F-2), token uji per peran (mock F-1), hari libur (mock F-3), saldo, dan pengajuan awal. |
 | `test/` | Uji otomatis alur utama, kasus gagal, dan API-K04-07. |
 | `scripts/demo.js` | Skrip demo alur utama minggu 4; hasilnya disimpan di `bukti/demo-log.txt`. |
+| `scripts/integrasi-f2.js` | Uji integrasi pertemuan 6 terhadap API Kelompok 2 yang berjalan; hasilnya di `bukti/p6-integrasi-f2-log.txt`. |
 | `scripts/uji-p5.js` | Uji pertemuan 5: buat, lihat, ubah draf dan validasi VAL-01 sampai VAL-05; hasilnya di `bukti/p5-log.txt`. |
-| `bukti/` | Log dan respons mentah demo minggu 4 (`demo-*`) dan uji pertemuan 5 (`p5-*`). |
+| `bukti/` | Log dan respons mentah demo minggu 4 (`demo-*`), uji pertemuan 5 (`p5-*`), dan integrasi pertemuan 6 (`p6-*`). |
 | `.env.example` | Konfigurasi contoh untuk lingkungan lokal. |
 | `.github/workflows/check.yml` | CI: `npm ci`, `npm test`, `npm run build`, `npm run demo`, dan `npm run uji:p5` pada setiap push dan pull request. |
 
@@ -57,6 +57,29 @@ Skrip menjalankan layanan dari seed, lalu memanggil API secara berurutan:
    karyawan mencoba menyetujui (403).
 
 Hasilnya tercetak di terminal dan tersimpan di `bukti/demo-log.txt`.
+
+## Integrasi API referensi karyawan Kelompok 2 (pertemuan 6)
+
+Secara bawaan data karyawan dibaca dari mock `seed/seed.json`. Untuk memakai API Kelompok 2
+(API-K02-17 `GET /api/v1/referensi/sdm/{employeeId}`, repo `derrwnd/PPL-F-2`):
+
+1. Jalankan layanan F-2 di folder repo F-2: `npm install` lalu `npx tsx src/app.ts` (port 8080).
+2. Di repo ini, isi `.env`:
+   ```
+   EMPLOYEE_SOURCE=f2
+   F2_BASE_URL=http://localhost:8080
+   F2_TOKEN=token-coo
+   ```
+3. Jalankan `npm start`. `GET /health` menampilkan `"employeeSource": "f2"`.
+4. Uji integrasi otomatis (alur berhasil dan kasus gagal): `npm run integrasi:f2`.
+   Hasilnya di `bukti/p6-integrasi-f2-log.txt`.
+
+Akun uji untuk karyawan F-2: `token-uji-karyawan-f2` (Sandy Walsh, statusKerja karyawan) dan
+`token-uji-karyawan-f2-kontrak` (Rina Maharani, statusKerja kontrak). Tanggal masuk kerja keduanya sementara
+diambil dari `seed/seed.json` bagian `employeeSupplements` karena API-K02-17 belum memuatnya.
+
+Bila API Kelompok 2 tidak terjangkau, operasi yang membutuhkan referensi karyawan dibalas
+`503 REFERENCE_UNAVAILABLE` tanpa menyimpan data.
 
 ## Uji pertemuan 5: draf pengajuan dan validasi dasar
 

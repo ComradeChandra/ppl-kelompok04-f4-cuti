@@ -4,6 +4,7 @@ const path = require('node:path');
 const { createClock } = require('./clock');
 const D = require('./dates');
 const { UUID_V7, UUID_ANY, EXTERNAL_ID, uuidv7 } = require('./ids');
+const { createEmployeeDirectory } = require('./employees');
 
 const OPENAPI_FILE = path.join(__dirname, '..', 'openapi', 'openapi.yaml');
 const LEAVE_TYPES = ['ANNUAL', 'SICK', 'MENSTRUAL', 'MATERNITY'];
@@ -48,7 +49,8 @@ function createApp(seedFile, options = {}) {
   const clock = options.clock || createClock(options.demoToday || null);
   const policy = seed.policy;
   const holidays = new Set(seed.holidays.map((h) => h.date)); // mock kalender F-3
-  const employees = new Map(seed.employees.map((e) => [e.employeeId, e])); // mock referensi F-2
+  // Referensi karyawan Kelompok 2: mock dari seed atau API nyata F-2 (EMPLOYEE_SOURCE=f2).
+  const directory = options.employeeDirectory || createEmployeeDirectory({ seed, ...(options.employees || {}) });
   // Data F-4 disimpan di memori dan selalu dimuat ulang dari seed saat layanan dijalankan.
   const requests = structuredClone(seed.leaveRequests);
   const balances = structuredClone(seed.balances);
@@ -115,7 +117,7 @@ function createApp(seedFile, options = {}) {
   const summary = (r) => ({
     leaveRequestId: r.leaveRequestId,
     employeeId: r.employeeId,
-    employeeName: employees.get(r.employeeId)?.displayName ?? null,
+    employeeName: directory.name(r.employeeId),
     leaveType: r.leaveType,
     startDate: r.startDate,
     endDate: r.endDate,
@@ -150,10 +152,10 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-01 ----------
-  function getLeaveBalance(account, employeeId, url) {
+  async function getLeaveBalance(account, employeeId, url) {
     if (!EXTERNAL_ID.test(employeeId)) fail(400, 'INVALID_EMPLOYEE_ID', 'employeeId tidak valid. Gunakan ID dari referensi karyawan Kelompok 2, contoh EMP-001.');
-    const emp = employees.get(employeeId);
-    if (!emp) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan.');
+    const emp = await directory.get(employeeId);
+    if (!emp) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan di referensi karyawan.');
     const wanted = account.role === 'COO' ? 'PENDING_COO' : 'PENDING_CEO';
     const isApprover = ['COO', 'CEO'].includes(account.role) && requests.some((r) => r.employeeId === employeeId && r.status === wanted);
     if (account.employeeId !== employeeId && !isApprover && account.role !== 'HR') forbid();
@@ -205,12 +207,13 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- validasi bersama untuk buat, ubah draf, dan kirim draf ----------
-  function requesterOf(account) {
+  async function requesterOf(account) {
     if (!account.employeeId) forbid();
-    const emp = employees.get(account.employeeId);
-    if (!emp) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan di referensi karyawan. Hubungi HR untuk memeriksa data akun Anda.');
+    const emp = await directory.get(account.employeeId);
+    if (!emp) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan di referensi karyawan.');
     if (!emp.active) forbid('Akun tidak terhubung ke karyawan aktif.');
-    if (emp.employmentType !== 'EMPLOYEE') forbid('Tenaga ahli tidak dapat mengajukan cuti melalui sistem.');
+    if (emp.employmentType === 'EXPERT') forbid('Tenaga ahli tidak dapat mengajukan cuti melalui sistem.');
+    if (emp.employmentType !== 'EMPLOYEE') forbid(`Status kerja "${emp.statusKerja}" dari referensi karyawan belum diatur untuk pengajuan cuti.`);
     return emp;
   }
 
@@ -236,7 +239,8 @@ function createApp(seedFile, options = {}) {
     if (wd < 1) fail(400, 'VALIDATION_ERROR', 'Rentang tanggal tidak memuat hari kerja.');
     if (leaveType === 'ANNUAL') {
       const from = eligibleFrom(emp);
-      if (!from || from > today) fail(422, 'NOT_ELIGIBLE', `Anda berhak cuti tahunan mulai ${from} (12 bulan masa kerja).`);
+      if (!from) fail(422, 'NOT_ELIGIBLE', 'Tanggal masuk kerja belum tersedia di referensi karyawan, sehingga kelayakan cuti tahunan belum dapat dihitung.');
+      if (from > today) fail(422, 'NOT_ELIGIBLE', `Anda berhak cuti tahunan mulai ${from} (12 bulan masa kerja).`);
       if (yearOf(startDate) !== yearOf(endDate)) {
         fail(422, 'CROSS_YEAR_NOT_ALLOWED', 'Cuti tahunan tidak boleh melewati 31 Desember. Ajukan dalam dua pengajuan terpisah.');
       }
@@ -282,8 +286,8 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-03 ----------
-  function createLeaveRequest(account, body, idemKey) {
-    const emp = requesterOf(account);
+  async function createLeaveRequest(account, body, idemKey) {
+    const emp = await requesterOf(account);
     if (idemKey !== undefined) {
       if (!UUID_ANY.test(idemKey)) fail(400, 'VALIDATION_ERROR', 'Idempotency-Key harus berformat UUID.');
       const prev = requests.find((r) => r.employeeId === emp.employeeId && r.idempotencyKey === idemKey);
@@ -305,7 +309,7 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-11: ubah draf ----------
-  function updateDraft(account, id, body) {
+  async function updateDraft(account, id, body) {
     const r = findRequest(id);
     if (r.employeeId !== account.employeeId) forbid();
     if (r.status !== 'DRAFT') fail(409, 'INVALID_STATE', 'Pengajuan yang sudah dikirim tidak dapat diubah.');
@@ -314,7 +318,7 @@ function createApp(seedFile, options = {}) {
     if (unknown.length) fail(400, 'VALIDATION_ERROR', `Field berikut tidak dapat diubah: ${unknown.join(', ')}.`);
     if (Object.keys(patch).length === 0) fail(400, 'VALIDATION_ERROR', 'Tidak ada field yang diubah.');
     const merged = { leaveType: r.leaveType, startDate: r.startDate, endDate: r.endDate, reason: r.reason, attachmentIds: r.attachmentIds, ...patch };
-    const emp = requesterOf(account);
+    const emp = await requesterOf(account);
     checkFields(merged);
     const wd = checkRules(emp, merged, r.leaveRequestId);
     // Semua pemeriksaan lolos; baru sekarang data ditulis sehingga penolakan tidak meninggalkan perubahan sebagian.
@@ -323,11 +327,11 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-12: kirim draf ----------
-  function submitDraft(account, id) {
+  async function submitDraft(account, id) {
     const r = findRequest(id);
     if (r.employeeId !== account.employeeId) forbid();
     if (r.status !== 'DRAFT') fail(409, 'INVALID_STATE', 'Pengajuan ini sudah dikirim.');
-    const emp = requesterOf(account);
+    const emp = await requesterOf(account);
     r.workingDays = checkRules(emp, r, r.leaveRequestId);
     r.updatedAt = clock.nowIso();
     sendForApproval(account, r);
@@ -382,7 +386,7 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-07 ----------
-  function getLeaveStatus(account, url) {
+  async function getLeaveStatus(account, url) {
     if (!['SERVICE_F3', 'SERVICE_F5'].includes(account.role)) forbid();
     const employeeId = url.searchParams.get('employeeId');
     const from = url.searchParams.get('from');
@@ -394,7 +398,7 @@ function createApp(seedFile, options = {}) {
     if (D.daysInclusive(from, to) > policy.MAX_STATUS_RANGE_DAYS) {
       fail(400, 'RANGE_TOO_LONG', `Rentang tanggal maksimal ${policy.MAX_STATUS_RANGE_DAYS} hari, termasuk tanggal awal dan akhir.`);
     }
-    if (!employees.has(employeeId)) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan.');
+    if (!(await directory.get(employeeId))) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan di referensi karyawan.');
     const items = requests
       .filter((r) => r.employeeId === employeeId && r.status === 'APPROVED' && r.startDate <= to && r.endDate >= from)
       .sort((a, b) => a.startDate.localeCompare(b.startDate))
@@ -413,10 +417,10 @@ function createApp(seedFile, options = {}) {
   }
 
   // ---------- API-K04-09 ----------
-  function listBalanceLedger(account, employeeId, url) {
+  async function listBalanceLedger(account, employeeId, url) {
     if (!EXTERNAL_ID.test(employeeId)) fail(400, 'INVALID_EMPLOYEE_ID', 'employeeId tidak valid. Gunakan ID dari referensi karyawan Kelompok 2, contoh EMP-001.');
-    if (!employees.has(employeeId)) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan.');
     if (account.employeeId !== employeeId && account.role !== 'HR') forbid();
+    if (!(await directory.get(employeeId))) fail(404, 'EMPLOYEE_NOT_FOUND', 'Karyawan tidak ditemukan di referensi karyawan.');
     const year = parseYear(url);
     const items = ledger.filter((e) => e.employeeId === employeeId && e.year === year)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -465,7 +469,7 @@ function createApp(seedFile, options = {}) {
     const url = new URL(req.url, 'http://localhost');
     try {
       if (req.method === 'GET' && url.pathname === '/health') {
-        return send(res, 200, { status: 'ok', service: 'f4-cuti', today: clock.today() });
+        return send(res, 200, { status: 'ok', service: 'f4-cuti', today: clock.today(), employeeSource: directory.mode });
       }
       if (req.method === 'GET' && url.pathname === '/openapi.yaml') {
         res.writeHead(200, { 'Content-Type': 'application/yaml; charset=utf-8' });
@@ -476,10 +480,10 @@ function createApp(seedFile, options = {}) {
       const account = auth(req);
       const body = ['POST', 'PATCH'].includes(req.method) ? await readBody(req) : undefined;
       expireDue();
-      const [status, payload] = route[2](account, url.pathname.match(route[1]), url, body, req);
+      const [status, payload] = await route[2](account, url.pathname.match(route[1]), url, body, req);
       return send(res, status, payload);
     } catch (err) {
-      if (err instanceof ApiError) return send(res, err.status, { code: err.code, message: err.message });
+      if (err instanceof ApiError || err.code === 'REFERENCE_UNAVAILABLE') return send(res, err.status, { code: err.code, message: err.message });
       console.error(err);
       return send(res, 500, { code: 'INTERNAL_ERROR', message: 'Terjadi kesalahan pada server.' });
     }

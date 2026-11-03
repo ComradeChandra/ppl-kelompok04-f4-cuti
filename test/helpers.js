@@ -13,8 +13,8 @@ const IDS = {
 };
 
 // Menjalankan layanan baru dari seed untuk setiap pemanggilan, dengan tanggal demo yang dikunci.
-async function startServer(demoToday = '2026-10-19') {
-  const server = http.createServer(createApp(SEED, { demoToday }));
+async function startServer(demoToday = '2026-10-19', options = {}) {
+  const server = http.createServer(createApp(SEED, { demoToday, ...options }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   async function call(method, p, token, body, headers = {}) {

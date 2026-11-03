@@ -1,0 +1,212 @@
+UJI INTEGRASI PERTEMUAN 6: LAYANAN F-4 (KONSUMEN) → API REFERENSI KARYAWAN KELOMPOK 2 (PRODUSEN)
+Produsen: http://localhost:8080 API-K02-17 GET /api/v1/referensi/sdm/{employeeId} (OpenAPI F-2 1.1.0, repo derrwnd/PPL-F-2)
+Konsumen: layanan F-4 kontrak 1.2.0, EMPLOYEE_SOURCE=f2, token layanan ke F-2: Bearer *** | Tanggal demo: 2026-11-03
+Dijalankan: 2026-11-03T13:55:53.618Z | Node v25.2.1
+Data uji F-2: Sandy Walsh 01929b4a-5f10-7a22-9d44-3c8f1b2e7a90 (karyawan), Rina Maharani 01a1598a-6356-7933-8239-589944b35d30 (kontrak)
+Masih mock: token pengguna F-4 (Kelompok 1), kalender hari libur (Kelompok 3), tanggal masuk kerja (INT-02, seed employeeSupplements)
+==============================================================================
+ALUR BERHASIL: karyawan Kelompok 2 membuat dan mengirim draf cuti tahunan
+
+[I-01] Layanan F-4 berjalan dengan sumber referensi API Kelompok 2
+    GET /health  (token F-4: -)  waktu: 2026-11-03T13:55:53.624Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "status": "ok",
+      "service": "f4-cuti",
+      "today": "2026-11-03",
+      "employeeSource": "f2"
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+[I-02] Sandy Walsh membuka saldo; F-4 memeriksa employeeId ke API F-2
+    GET /api/v1/leave-balances/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.631Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "year": 2026,
+      "eligible": true,
+      "eligibleFrom": "2025-01-15",
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12,
+      "pendingDays": 0,
+      "availableDays": 12,
+      "expiresOn": "2026-12-31"
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.630Z GET /api/v1/referensi/sdm/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90 -> 200
+
+[I-03] Sandy Walsh membuat draf cuti tahunan 23-24 November 2026
+    POST /api/v1/leave-requests  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.638Z
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 201 (sesuai harapan)
+    {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-11-03T02:00:00Z"
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.636Z GET /api/v1/referensi/sdm/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90 -> 200
+
+[I-04] Detail draf memuat nama pemohon dari API F-2
+    GET /api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.640Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "employeeName": "Sandy Walsh",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-11-03T02:00:00Z",
+      "reason": "Urusan keluarga",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-11-03T02:00:00Z"
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+[I-05] Sandy Walsh mengirim draf (pemeriksaan ulang ke API F-2)
+    POST /api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068/submit  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.644Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "PENDING_COO",
+      "createdAt": "2026-11-03T02:00:00Z"
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.643Z GET /api/v1/referensi/sdm/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90 -> 200
+
+[I-06] COO melihat antrean; nama pemohon berasal dari API F-2
+    GET /api/v1/leave-requests?scope=approval  (token F-4: token-uji-coo)  waktu: 2026-11-03T13:55:53.653Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": [
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+          "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+          "employeeName": "Sandy Walsh",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-23",
+          "endDate": "2026-11-24",
+          "workingDays": 2,
+          "status": "PENDING_COO",
+          "createdAt": "2026-11-03T02:00:00Z"
+        }
+      ]
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+==============================================================================
+KASUS GAGAL YANG DITANGANI
+
+[G-01] employeeId EMP-001 (data uji F-4) tidak dikenal API F-2: pengajuan ditolak
+    POST /api/v1/leave-requests  (token F-4: token-uji-karyawan)  waktu: 2026-11-03T13:55:53.657Z
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 404 (sesuai harapan)
+    {
+      "code": "EMPLOYEE_NOT_FOUND",
+      "message": "Karyawan tidak ditemukan di referensi karyawan."
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.656Z GET /api/v1/referensi/sdm/EMP-001 -> 404
+
+[G-01a] Kondisi data: tidak ada pengajuan baru 23-24 November untuk EMP-001
+    GET /api/v1/leave-requests?scope=mine  (token F-4: token-uji-karyawan)  waktu: 2026-11-03T13:55:53.659Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": [
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+[G-02] Rina Maharani (statusKerja kontrak di F-2) mengajukan: ditolak karena status kerja belum diatur
+    POST /api/v1/leave-requests  (token F-4: token-uji-karyawan-f2-kontrak)  waktu: 2026-11-03T13:55:53.662Z
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 403 (sesuai harapan)
+    {
+      "code": "FORBIDDEN",
+      "message": "Status kerja \"kontrak\" dari referensi karyawan belum diatur untuk pengajuan cuti."
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.661Z GET /api/v1/referensi/sdm/01a1598a-6356-7933-8239-589944b35d30 -> 200
+
+[G-03] Pemeriksaan akses: tanpa token ditolak sebelum memanggil F-2
+    POST /api/v1/leave-requests  (token F-4: -)  waktu: 2026-11-03T13:55:53.664Z
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 401 (sesuai harapan)
+    {
+      "code": "UNAUTHORIZED",
+      "message": "Sesi berakhir, silakan login kembali."
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+[G-04] Pemeriksaan akses: karyawan lain (EMP-003) membuka pengajuan Sandy Walsh
+    GET /api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068  (token F-4: token-uji-karyawan-2)  waktu: 2026-11-03T13:55:53.666Z
+    → HTTP 403 (sesuai harapan)
+    {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+[G-05] Layanan F-2 tidak terjangkau (base URL salah/layanan mati): pengajuan tidak diteruskan
+    POST /api/v1/leave-requests  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.672Z
+    body: {"leaveType":"ANNUAL","startDate":"2026-11-23","endDate":"2026-11-24","reason":"Urusan keluarga","submit":false}
+    → HTTP 503 (sesuai harapan)
+    {
+      "code": "REFERENCE_UNAVAILABLE",
+      "message": "Layanan referensi karyawan (Kelompok 2) tidak dapat dihubungi. Coba lagi beberapa saat."
+    }
+    Panggilan F-4 ke F-2: 2026-11-03T13:55:53.672Z GET http://127.0.0.1:9/api/v1/referensi/sdm/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90 -> - (gagal terhubung: TypeError)
+
+[G-05a] Kondisi data: tidak ada pengajuan tersimpan untuk Sandy Walsh
+    GET /api/v1/leave-requests?scope=mine  (token F-4: token-uji-karyawan-f2)  waktu: 2026-11-03T13:55:53.674Z
+    → HTTP 200 (sesuai harapan)
+    {
+      "items": []
+    }
+    Panggilan F-4 ke F-2: tidak ada
+
+HASIL: 13 langkah sesuai harapan.

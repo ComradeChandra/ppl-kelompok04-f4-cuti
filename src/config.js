@@ -17,6 +17,12 @@ function getConfig() {
     port: Number(process.env.PORT || 3000),
     seedFile: path.resolve(__dirname, '..', process.env.SEED_FILE || 'seed/seed.json'),
     demoToday: process.env.DEMO_TODAY || null,
+    employees: {
+      source: process.env.EMPLOYEE_SOURCE || 'seed',
+      baseUrl: process.env.F2_BASE_URL || '',
+      token: process.env.F2_TOKEN || '',
+      timeoutMs: Number(process.env.F2_TIMEOUT_MS || 3000),
+    },
   };
 }
 

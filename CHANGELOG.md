@@ -3,6 +3,25 @@
 Kontrak: `openapi/openapi.yaml`. Versi 1.0.0 dibekukan untuk asesmen tengah semester; setiap perubahan
 setelah versi ini dicatat di berkas ini beserta alasan dan pihak yang menyetujui.
 
+## 1.2.0 (2026-11-03), integrasi API referensi karyawan Kelompok 2
+
+Perubahan untuk pertemuan 6 (integrasi API awal):
+
+- Layanan F-4 dapat memakai API-K02-17 Kelompok 2 (`GET /api/v1/referensi/sdm/{employeeId}`, OpenAPI F-2 1.1.0)
+  sebagai sumber referensi karyawan dengan `EMPLOYEE_SOURCE=f2`, `F2_BASE_URL`, dan `F2_TOKEN`. Mode bawaan tetap
+  mock dari seed. Pemetaan: `namaLengkap` → nama pemohon; `statusKerja` `karyawan` → karyawan, `tenaga_ahli` →
+  tenaga ahli; status kerja lain ditolak 403 sampai diputuskan.
+- Respons baru `503 REFERENCE_UNAVAILABLE` pada API-K04-01, 03, 07, 09, 11, dan 12 bila API Kelompok 2 tidak
+  terjangkau, menolak token layanan F-4, atau membalas kesalahan. Operasi tidak diteruskan dan tidak ada data tersimpan.
+- 404 dari API Kelompok 2 (`{"code": 404, "message": "EMPLOYEE_NOT_FOUND"}`) diterjemahkan menjadi
+  `404 EMPLOYEE_NOT_FOUND` F-4. Pesan 404 karyawan disamakan di semua endpoint (INT-06).
+- `employeeName` pada daftar dan detail pengajuan boleh `null` bila nama belum diperoleh dari referensi karyawan.
+- API-K02-17 belum memuat tanggal masuk kerja dan status aktif; sementara diambil dari `seed/seed.json` bagian
+  `employeeSupplements` (INT-02).
+
+Dampak bagi konsumen F-3 dan F-5: API-K04-07 dapat membalas 503 bila referensi karyawan tidak tersedia; field
+respons lain tidak berubah.
+
 ## 1.1.0 (2026-10-27), draf pengajuan dan format employeeId Kelompok 2
 
 Perubahan untuk pertemuan 5 (operasi buat, lihat, dan ubah dengan validasi dasar):

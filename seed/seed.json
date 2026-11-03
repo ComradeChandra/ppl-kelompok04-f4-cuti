@@ -1,5 +1,5 @@
 {
-  "_catatan": "Data fiktif untuk lingkungan uji F-4. employeeId mengikuti seed bersama kelas (EMP-001, materi pertemuan 5). Token hanya untuk uji lokal dan mock F-1. Data karyawan adalah mock F-2; hari libur adalah mock F-3.",
+  "_catatan": "Data fiktif untuk lingkungan uji F-4. employeeId mengikuti seed bersama kelas (EMP-001, materi pertemuan 5). Token hanya untuk uji lokal dan mock F-1. Data karyawan adalah mock F-2; hari libur adalah mock F-3. Karyawan Kelompok 2 (Sandy Walsh, Rina Maharani) dipakai saat EMPLOYEE_SOURCE=f2.",
   "testTokens": {
     "token-uji-karyawan": {
       "role": "EMPLOYEE",
@@ -53,6 +53,16 @@
     "token-uji-f5": {
       "role": "SERVICE_F5",
       "userId": "0192f1a9-1b2c-7d3e-9f4a-5b6c7d8e9f0a"
+    },
+    "token-uji-karyawan-f2": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-e45f-7a6b-9c7d-8e9f0a1b2c3d",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90"
+    },
+    "token-uji-karyawan-f2-kontrak": {
+      "role": "EMPLOYEE",
+      "userId": "0192f1a8-f56a-7b7c-8d8e-9f0a1b2c3d4e",
+      "employeeId": "01a1598a-6356-7933-8239-589944b35d30"
     }
   },
   "employees": [
@@ -156,6 +166,14 @@
     {
       "balanceId": "0192f1c4-7c9d-7ea4-8f1a-3b4c5d6e7f80",
       "employeeId": "EMP-007",
+      "year": 2026,
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12
+    },
+    {
+      "balanceId": "0192f1c4-8d0e-7fb5-9a2b-4c5d6e7f8091",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
       "year": 2026,
       "entitlementDays": 12,
       "usedDays": 0,
@@ -287,5 +305,16 @@
       "cancelledAt": null,
       "decisions": []
     }
-  ]
+  ],
+  "employeeSupplements": {
+    "_catatan": "Tanggal masuk kerja dan status aktif untuk karyawan dari API Kelompok 2. API-K02-17 belum memuat dua field ini (INT-02); data fiktif sementara sampai Kelompok 2 menambahkannya.",
+    "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90": {
+      "hireDate": "2024-01-15",
+      "active": true
+    },
+    "01a1598a-6356-7933-8239-589944b35d30": {
+      "hireDate": "2026-02-02",
+      "active": true
+    }
+  }
 }

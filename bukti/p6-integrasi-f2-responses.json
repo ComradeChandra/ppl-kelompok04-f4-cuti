@@ -1,0 +1,222 @@
+[
+  {
+    "no": "I-01",
+    "at": "2026-11-03T13:55:53.624Z",
+    "method": "GET",
+    "url": "/health",
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "service": "f4-cuti",
+      "today": "2026-11-03",
+      "employeeSource": "f2"
+    }
+  },
+  {
+    "no": "I-02",
+    "at": "2026-11-03T13:55:53.631Z",
+    "method": "GET",
+    "url": "/api/v1/leave-balances/01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+    "status": 200,
+    "body": {
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "year": 2026,
+      "eligible": true,
+      "eligibleFrom": "2025-01-15",
+      "entitlementDays": 12,
+      "usedDays": 0,
+      "remainingDays": 12,
+      "pendingDays": 0,
+      "availableDays": 12,
+      "expiresOn": "2026-12-31"
+    }
+  },
+  {
+    "no": "I-03",
+    "at": "2026-11-03T13:55:53.638Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 201,
+    "body": {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-11-03T02:00:00Z"
+    }
+  },
+  {
+    "no": "I-04",
+    "at": "2026-11-03T13:55:53.640Z",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "employeeName": "Sandy Walsh",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "DRAFT",
+      "createdAt": "2026-11-03T02:00:00Z",
+      "reason": "Urusan keluarga",
+      "attachments": [],
+      "decisions": [],
+      "cancelledAt": null,
+      "updatedAt": "2026-11-03T02:00:00Z"
+    }
+  },
+  {
+    "no": "I-05",
+    "at": "2026-11-03T13:55:53.644Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068/submit",
+    "status": 200,
+    "body": {
+      "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+      "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+      "leaveType": "ANNUAL",
+      "startDate": "2026-11-23",
+      "endDate": "2026-11-24",
+      "workingDays": 2,
+      "status": "PENDING_COO",
+      "createdAt": "2026-11-03T02:00:00Z"
+    }
+  },
+  {
+    "no": "I-06",
+    "at": "2026-11-03T13:55:53.653Z",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=approval",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "01a19f22-80e8-7d84-8cbf-de599a6e4068",
+          "employeeId": "01929b4a-5f10-7a22-9d44-3c8f1b2e7a90",
+          "employeeName": "Sandy Walsh",
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-23",
+          "endDate": "2026-11-24",
+          "workingDays": 2,
+          "status": "PENDING_COO",
+          "createdAt": "2026-11-03T02:00:00Z"
+        }
+      ]
+    }
+  },
+  {
+    "no": "G-01",
+    "at": "2026-11-03T13:55:53.657Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 404,
+    "body": {
+      "code": "EMPLOYEE_NOT_FOUND",
+      "message": "Karyawan tidak ditemukan di referensi karyawan."
+    }
+  },
+  {
+    "no": "G-01a",
+    "at": "2026-11-03T13:55:53.659Z",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=mine",
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "leaveRequestId": "0192f1b2-3c4d-7e5f-9a6b-7c8d9e0f1a2b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-11-16",
+          "endDate": "2026-11-18",
+          "workingDays": 3,
+          "status": "PENDING_COO",
+          "createdAt": "2026-10-09T02:10:00Z"
+        },
+        {
+          "leaveRequestId": "0192f1b0-1d2e-7f30-8a4b-5c6d7e8f9a0b",
+          "employeeId": "EMP-001",
+          "employeeName": null,
+          "leaveType": "ANNUAL",
+          "startDate": "2026-10-20",
+          "endDate": "2026-10-22",
+          "workingDays": 3,
+          "status": "APPROVED",
+          "createdAt": "2026-10-06T01:15:00Z"
+        }
+      ]
+    }
+  },
+  {
+    "no": "G-02",
+    "at": "2026-11-03T13:55:53.662Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 403,
+    "body": {
+      "code": "FORBIDDEN",
+      "message": "Status kerja \"kontrak\" dari referensi karyawan belum diatur untuk pengajuan cuti."
+    }
+  },
+  {
+    "no": "G-03",
+    "at": "2026-11-03T13:55:53.664Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 401,
+    "body": {
+      "code": "UNAUTHORIZED",
+      "message": "Sesi berakhir, silakan login kembali."
+    }
+  },
+  {
+    "no": "G-04",
+    "at": "2026-11-03T13:55:53.666Z",
+    "method": "GET",
+    "url": "/api/v1/leave-requests/01a19f22-80e8-7d84-8cbf-de599a6e4068",
+    "status": 403,
+    "body": {
+      "code": "FORBIDDEN",
+      "message": "Anda tidak memiliki akses ke data ini."
+    }
+  },
+  {
+    "no": "G-05",
+    "at": "2026-11-03T13:55:53.672Z",
+    "method": "POST",
+    "url": "/api/v1/leave-requests",
+    "status": 503,
+    "body": {
+      "code": "REFERENCE_UNAVAILABLE",
+      "message": "Layanan referensi karyawan (Kelompok 2) tidak dapat dihubungi. Coba lagi beberapa saat."
+    }
+  },
+  {
+    "no": "G-05a",
+    "at": "2026-11-03T13:55:53.674Z",
+    "method": "GET",
+    "url": "/api/v1/leave-requests?scope=mine",
+    "status": 200,
+    "body": {
+      "items": []
+    }
+  }
+]

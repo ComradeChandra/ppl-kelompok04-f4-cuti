@@ -1,11 +1,12 @@
 openapi: 3.0.3
 info:
   title: API Layanan Cuti F-4 (Pengajuan dan Persetujuan Cuti)
-  version: 1.1.0
+  version: 1.2.0
   description: |
     Kontrak API modul F-4 Pengajuan dan Persetujuan Cuti, ERP PT Anaheim Nimbus Universal
     (Kelas F, Kelompok 4). Versi 1.0.0 dibekukan untuk asesmen tengah semester; versi 1.1.0 menambah
-    draf pengajuan (pertemuan 5) dan mengikuti format employeeId Kelompok 2 (contoh EMP-001).
+    draf pengajuan (pertemuan 5) dan mengikuti format employeeId Kelompok 2 (contoh EMP-001). Versi 1.2.0
+    menambah respons 503 REFERENCE_UNAVAILABLE ketika API referensi karyawan Kelompok 2 tidak dapat dipakai.
     Riwayat perubahan dicatat di CHANGELOG.md.
 
     Konvensi yang dipakai (materi pertemuan 2, menunggu lembar kesepakatan integrasi kelas):
@@ -92,6 +93,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/EmployeeNotFound'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-balances/{employeeId}/ledger:
     get:
@@ -133,6 +137,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/EmployeeNotFound'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-requests:
     get:
@@ -303,6 +310,9 @@ paths:
                   $ref: '#/components/examples/error-422-sick-backdate-limit'
                 batas-haid:
                   $ref: '#/components/examples/error-422-menstrual-limit'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-requests/{leaveRequestId}:
     get:
@@ -405,6 +415,9 @@ paths:
               examples:
                 tenggat-h7:
                   $ref: '#/components/examples/error-422-deadline-h7'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-requests/{leaveRequestId}/submit:
     post:
@@ -451,6 +464,9 @@ paths:
               examples:
                 tenggat-h7:
                   $ref: '#/components/examples/error-422-deadline-h7'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-requests/{leaveRequestId}/decisions:
     post:
@@ -753,6 +769,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/EmployeeNotFound'
+        '503':
+          $ref: '#/components/responses/ReferenceUnavailable'
+
 
   /api/v1/leave-balance-expiry-runs:
     post:
@@ -938,7 +957,7 @@ components:
             akses-ditolak:
               $ref: '#/components/examples/error-403'
     EmployeeNotFound:
-      description: employeeId tidak dikenal F-2.
+      description: employeeId tidak dikenal API referensi karyawan Kelompok 2.
       content:
         application/json:
           schema:
@@ -946,6 +965,17 @@ components:
           examples:
             karyawan-tidak-ditemukan:
               $ref: '#/components/examples/error-404-employee'
+    ReferenceUnavailable:
+      description: |
+        API referensi karyawan Kelompok 2 (API-K02-17) tidak terjangkau, menolak token layanan F-4, atau membalas
+        kesalahan. Operasi tidak diteruskan dan tidak ada data yang tersimpan; klien dapat mencoba ulang.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            referensi-tidak-tersedia:
+              $ref: '#/components/examples/error-503-reference'
     LeaveRequestNotFound:
       description: leaveRequestId tidak dikenal.
       content:
@@ -1088,7 +1118,8 @@ components:
           $ref: '#/components/schemas/ExternalId'
         employeeName:
           type: string
-          description: Nama pemohon dari API F-2; tidak disimpan F-4.
+          nullable: true
+          description: Nama pemohon dari API referensi karyawan Kelompok 2 (namaLengkap); tidak disimpan F-4. null bila nama belum diperoleh dari referensi karyawan.
         leaveType:
           $ref: '#/components/schemas/LeaveType'
         startDate:
@@ -1633,7 +1664,7 @@ components:
       summary: Karyawan pemilik token tidak dikenal
       value:
         code: EMPLOYEE_NOT_FOUND
-        message: Karyawan tidak ditemukan di referensi karyawan. Hubungi HR untuk memeriksa data akun Anda.
+        message: Karyawan tidak ditemukan di referensi karyawan.
     decision-body-approve:
       summary: Menyetujui
       value:
@@ -1765,7 +1796,12 @@ components:
       summary: employeeId tidak dikenal
       value:
         code: EMPLOYEE_NOT_FOUND
-        message: Karyawan tidak ditemukan.
+        message: Karyawan tidak ditemukan di referensi karyawan.
+    error-503-reference:
+      summary: Referensi karyawan Kelompok 2 tidak dapat dihubungi
+      value:
+        code: REFERENCE_UNAVAILABLE
+        message: Layanan referensi karyawan (Kelompok 2) tidak dapat dihubungi. Coba lagi beberapa saat.
     error-404-leave-request:
       summary: leaveRequestId tidak dikenal
       value:
