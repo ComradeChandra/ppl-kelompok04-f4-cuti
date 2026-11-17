@@ -1,12 +1,13 @@
 import { Card } from '../../organisms/card'
 import { formatRange } from '../../../lib/format-date'
 import { LEAVE_TYPE_LABEL } from '../../../lib/leave-labels'
+import { shortId } from '../../../lib/short-id'
 import type { LeaveDetail } from '../../../types/leave'
 
 /** Kartu "Ringkasan pengajuan" di halaman detail. */
 export function LeaveSummaryCard({ request: r }: { request: LeaveDetail }) {
   const rows: [string, string][] = [
-    ['Pemohon', `${r.employeeName ?? '-'} · ${r.employeeId}`],
+    ['Pemohon', `${r.employeeName ?? '-'} · ${shortId(r.employeeId)}`],
     ['Jenis cuti', LEAVE_TYPE_LABEL[r.leaveType]],
     ['Tanggal', formatRange(r.startDate, r.endDate)],
     ['Hari kerja', `${r.workingDays} hari`],

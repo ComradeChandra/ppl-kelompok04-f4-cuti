@@ -15,8 +15,14 @@ import type {
 
 const enc = encodeURIComponent
 
-export function getServiceToday() {
-  return callApi<{ today: string }>('/health').then((res) => res.today)
+export type ServiceInfo = {
+  today: string
+  // Sumber referensi karyawan: seed (mock) atau f2 (API-K02-17 Kelompok 2). Layanan lama tanpa field ini berarti seed.
+  employeeSource?: 'seed' | 'f2'
+}
+
+export function getServiceInfo() {
+  return callApi<ServiceInfo>('/health')
 }
 
 // API-K04-01

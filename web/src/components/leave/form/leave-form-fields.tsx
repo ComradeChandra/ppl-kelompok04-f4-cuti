@@ -6,6 +6,7 @@ import { TextAreaField } from '../../atoms/text-area-field'
 import { SegmentedControl } from '../../molecules/segmented-control'
 import { LEAVE_TYPE_LABEL, LEAVE_TYPES } from '../../../lib/leave-labels'
 import { useSession } from '../../../lib/session'
+import { shortId } from '../../../lib/short-id'
 import type { LeaveType } from '../../../types/leave'
 import { AttachmentField } from './attachment-field'
 import { BalanceField } from './balance-field'
@@ -29,7 +30,7 @@ export function LeaveFormFields({ form, locked }: { form: LeaveForm; locked: boo
       <div>
         <FieldLabel id="requester-label">Pemohon</FieldLabel>
         <ReadOnlyField hint="Hanya baca" labelledBy="requester-label">
-          {account.name} · ID karyawan {account.employeeId}
+          {account.name} · ID karyawan {shortId(account.employeeId)}
         </ReadOnlyField>
       </div>
 
