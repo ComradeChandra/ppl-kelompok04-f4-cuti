@@ -1,5 +1,5 @@
-export { ACCOUNTS, findAccount, isApprover } from './session/accounts'
-export type { Account, Role } from './session/accounts'
+export { ACCOUNTS, accountsFor, findAccount, isApprover } from './session/accounts'
+export type { Account, EmployeeSource, Role } from './session/accounts'
 export { SessionContext } from './session/session-context'
 export type { Session } from './session/session-context'
 export { SessionProvider } from './session/session-provider'

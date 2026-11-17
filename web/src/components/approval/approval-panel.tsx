@@ -6,6 +6,7 @@ import { TextAreaField } from '../atoms/text-area-field'
 import { Card } from '../organisms/card'
 import { formatDateTime, formatRange, yearOf } from '../../lib/format-date'
 import { getLeaveBalance } from '../../lib/leave-api'
+import { shortId } from '../../lib/short-id'
 import { LEAVE_TYPE_LABEL, STATUS_LABEL, STATUS_TONE } from '../../lib/leave-labels'
 import { useAsync } from '../../lib/use-async'
 import type { LeaveBalance, LeaveDetail } from '../../types/leave'
@@ -43,7 +44,7 @@ export function ApprovalPanel({ request: r, onDecided }: { request: LeaveDetail;
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">{r.employeeName ?? r.employeeId}</h2>
-          <p className="text-xs text-ink-muted">ID karyawan {r.employeeId}</p>
+          <p className="text-xs text-ink-muted">ID karyawan {shortId(r.employeeId)}</p>
         </div>
         <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
       </div>
